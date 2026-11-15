@@ -18,3 +18,9 @@ citizentech:
     secret: segredo-de-teste-com-pelo-menos-32-caracteres
   hash:
     secret: segredo-hash-de-teste
+
+# Nao ha RabbitMQ nos testes: o health check nao deve ficar DOWN por isso
+management:
+  health:
+    rabbit:
+      enabled: false

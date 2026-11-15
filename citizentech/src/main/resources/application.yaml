@@ -51,6 +51,11 @@ citizentech:
   # ---------- Hash do UID do cartao e do token do totem ----------
   hash:
     secret: ${HASH_SECRET}
+  # ---------- Primeiro gestor (opcional, criado ao subir se nao existir) ----------
+  gestor-inicial:
+    nome: ${GESTOR_NOME:Gestor}
+    email: ${GESTOR_EMAIL:}
+    senha: ${GESTOR_SENHA:}
 
 # ---------- Swagger / OpenAPI ----------
 springdoc:

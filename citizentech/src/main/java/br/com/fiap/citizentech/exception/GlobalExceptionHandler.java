@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -71,6 +73,19 @@ public class GlobalExceptionHandler {
 		return responder(HttpStatus.CONFLICT,
 				"Operacao viola uma regra do banco de dados (registro duplicado ou em uso por outro cadastro)",
 				request, List.of());
+	}
+
+	/** Login com e-mail ou senha errados. */
+	@ExceptionHandler(BadCredentialsException.class)
+	public ResponseEntity<ErroResponse> credenciaisInvalidas(BadCredentialsException ex, HttpServletRequest request) {
+		return responder(HttpStatus.UNAUTHORIZED, ex.getMessage(), request, List.of());
+	}
+
+	/** Requisicao sem token, ou com token invalido ou expirado. */
+	@ExceptionHandler(AuthenticationException.class)
+	public ResponseEntity<ErroResponse> naoAutenticado(AuthenticationException ex, HttpServletRequest request) {
+		return responder(HttpStatus.UNAUTHORIZED,
+				"Autenticacao necessaria: envie um token JWT valido no header Authorization", request, List.of());
 	}
 
 	@ExceptionHandler(AccessDeniedException.class)
