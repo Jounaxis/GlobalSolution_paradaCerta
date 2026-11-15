@@ -40,6 +40,19 @@ spring:
         options:
           model: ${OPENAI_MODEL:gpt-4o-mini}
           temperature: 0.3
+    # O totem espera a resposta: no maximo 2 tentativas rapidas e depois cai na frase padrao
+    retry:
+      max-attempts: 2
+      backoff:
+        initial-interval: 500ms
+        multiplier: 2
+        max-interval: 1s
+
+  # ---------- Timeouts das chamadas HTTP externas (OpenAI) ----------
+  http:
+    clients:
+      connect-timeout: 3s
+      read-timeout: 10s
 
 citizentech:
   # ---------- Seguranca (JWT) ----------
