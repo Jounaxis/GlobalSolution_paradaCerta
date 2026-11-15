@@ -65,10 +65,11 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
+		<!-- Banco em memoria dos testes e do perfil dev (para rodar sem o Oracle) -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<scope>test</scope>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.oracle.database.jdbc</groupId>
