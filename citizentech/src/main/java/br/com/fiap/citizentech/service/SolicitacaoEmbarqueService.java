@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.fiap.citizentech.ai.ContextoMensagemVoz;
+import br.com.fiap.citizentech.ai.MensagemVozService;
 import br.com.fiap.citizentech.dto.request.SolicitacaoEmbarqueRequest;
 import br.com.fiap.citizentech.dto.request.StatusSolicitacaoRequest;
 import br.com.fiap.citizentech.dto.response.AuditoriaSolicitacaoResponse;
@@ -15,6 +17,7 @@ import br.com.fiap.citizentech.dto.response.TentativaEmbarqueResponse;
 import br.com.fiap.citizentech.exception.ConflitoException;
 import br.com.fiap.citizentech.exception.RecursoNaoEncontradoException;
 import br.com.fiap.citizentech.exception.RegraNegocioException;
+import br.com.fiap.citizentech.model.Linha;
 import br.com.fiap.citizentech.model.Passageiro;
 import br.com.fiap.citizentech.model.SolicitacaoEmbarque;
 import br.com.fiap.citizentech.model.Totem;
@@ -33,6 +36,8 @@ import lombok.RequiredArgsConstructor;
  * <li>so totens ATIVOS podem abrir solicitacoes;</li>
  * <li>solicitacoes em estado final (EMBARCADO, SEM_ONIBUS, CANCELADA) nao mudam mais.</li>
  * </ul>
+ * Quando a solicitacao chega sem mensagem de voz, a IA ({@link MensagemVozService}) escreve a frase
+ * que o totem vai falar ao passageiro.
  */
 @Service
 @RequiredArgsConstructor
@@ -45,6 +50,7 @@ public class SolicitacaoEmbarqueService {
 	private final TotemService totemService;
 	private final PassageiroService passageiroService;
 	private final LinhaService linhaService;
+	private final MensagemVozService mensagemVozService;
 
 	/** Lista todas as solicitacoes ou, se o status for informado, so as desse status. */
 	public Page<SolicitacaoEmbarqueResponse> listar(StatusSolicitacao status, Pageable pageable) {
@@ -87,6 +93,9 @@ public class SolicitacaoEmbarqueService {
 		if (request.linhaId() != null) {
 			solicitacao.setLinha(linhaService.buscarEntidade(request.linhaId()));
 		}
+		if (request.mensagemVoz() == null || request.mensagemVoz().isBlank()) {
+			solicitacao.setMensagemVoz(mensagemVozService.gerar(contextoDaMensagem(solicitacao)));
+		}
 
 		return SolicitacaoEmbarqueResponse.from(solicitacaoRepository.save(solicitacao));
 	}
@@ -126,6 +135,18 @@ public class SolicitacaoEmbarqueService {
 		return auditoriaRepository.findBySolicitacaoIdOrderByDataHoraAsc(solicitacaoId).stream()
 				.map(AuditoriaSolicitacaoResponse::from)
 				.toList();
+	}
+
+	/** Monta o que a IA precisa saber, sem nenhum dado pessoal do passageiro. */
+	private ContextoMensagemVoz contextoDaMensagem(SolicitacaoEmbarque solicitacao) {
+		Passageiro passageiro = solicitacao.getPassageiro();
+		Linha linha = solicitacao.getLinha();
+		return new ContextoMensagemVoz(
+				passageiro != null ? passageiro.getTipoNecessidade() : null,
+				linha != null ? linha.getLetreiro() : null,
+				linha != null ? linha.getDestino() : null,
+				solicitacao.getTotem().getParada().getNome(),
+				solicitacao.getTipoSinal());
 	}
 
 	public SolicitacaoEmbarque buscarEntidade(Long id) {

@@ -131,6 +131,27 @@ class CrudIntegrationTest {
 				.authorities(new SimpleGrantedAuthority("ROLE_GESTOR"));
 	}
 
+	@Test
+	void solicitacaoSemMensagemRecebeAFraseDeVoz() throws Exception {
+		long paradaId = criar("/api/paradas", """
+				{"codigoSptrans": 2002, "nome": "Parada Hospital"}
+				""");
+		long linhaId = criar("/api/linhas", """
+				{"codigoSptrans": 3003, "letreiro": "6091-10", "sentido": 1, "destino": "Terminal Varginha"}
+				""");
+		long totemId = criar("/api/totens", """
+				{"paradaId": %d, "identificador": "TOTEM-0002", "token": "token-secreto-do-totem"}
+				""".formatted(paradaId));
+
+		// no perfil de teste a OpenAI nao responde, entao a solicitacao recebe a frase padrao
+		enviar("/api/solicitacoes", """
+				{"totemId": %d, "linhaId": %d, "tipoSinal": "BOTAO", "chaveIdempotencia": "chave-voz"}
+				""".formatted(totemId, linhaId))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.mensagemVoz").value("Pedido de embarque registrado para a linha 6091-10, "
+						+ "sentido Terminal Varginha. Aguarde na parada, o motorista do proximo onibus sera avisado."));
+	}
+
 	private String passageiroJson(long cuidadorId, boolean consentimento) {
 		return """
 				{"cuidadorId": %d, "nome": "Dona Ana", "tipoNecessidade": "BAIXA_VISAO",
