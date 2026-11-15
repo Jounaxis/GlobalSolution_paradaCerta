@@ -1,13 +1,16 @@
 package br.com.fiap.citizentech.config;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +23,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
@@ -53,6 +59,7 @@ public class SecurityConfig {
 		return http
 				// API REST stateless com token no header: sem sessao e sem CSRF
 				.csrf(AbstractHttpConfigurer::disable)
+				.cors(Customizer.withDefaults())
 				.sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers(HttpMethod.POST, "/auth/login", "/auth/registro").permitAll()
@@ -83,6 +90,27 @@ public class SecurityConfig {
 						.authenticationEntryPoint(securityErrorHandler)
 						.accessDeniedHandler(securityErrorHandler))
 				.build();
+	}
+
+	/**
+	 * CORS para o app chamar a API pelo navegador (Expo Web). O app nativo (Android/iOS) nao usa CORS.
+	 * As origens vem de CORS_ALLOWED_ORIGINS (separadas por virgula); o padrao "*" libera todas,
+	 * o que e seguro aqui porque a autenticacao e por token no header, sem cookies.
+	 */
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource(
+			@Value("${citizentech.cors.allowed-origins:*}") List<String> origens) {
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowedOriginPatterns(origens);
+		config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+		config.setExposedHeaders(List.of("Location"));
+		config.setAllowCredentials(false);
+		config.setMaxAge(3600L);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config);
+		return source;
 	}
 
 	/** Le o claim "perfil" do token e transforma em papel: GESTOR -> ROLE_GESTOR. */
