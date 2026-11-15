@@ -1,0 +1,41 @@
+package br.com.fiap.citizentech.service;
+
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.util.HexFormat;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+/**
+ * Gera o hash HMAC-SHA256 (64 caracteres hexadecimais) do UID do cartao e do token do totem.
+ * <p>
+ * Usa um segredo da aplicacao (variavel HASH_SECRET), como recomenda o script do banco:
+ * SHA-256 puro de um UID de 4 bytes seria facil de quebrar por forca bruta.
+ */
+@Service
+public class HashService {
+
+	private static final String ALGORITMO = "HmacSHA256";
+
+	private final SecretKeySpec chave;
+
+	public HashService(@Value("${citizentech.hash.secret}") String segredo) {
+		this.chave = new SecretKeySpec(segredo.getBytes(StandardCharsets.UTF_8), ALGORITMO);
+	}
+
+	public String hmacSha256(String valor) {
+		try {
+			Mac mac = Mac.getInstance(ALGORITMO);
+			mac.init(chave);
+			byte[] hash = mac.doFinal(valor.trim().getBytes(StandardCharsets.UTF_8));
+			return HexFormat.of().formatHex(hash);
+		} catch (GeneralSecurityException e) {
+			throw new IllegalStateException("Nao foi possivel gerar o hash HMAC-SHA256", e);
+		}
+	}
+
+}
