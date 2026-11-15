@@ -1,0 +1,18 @@
+# Perfil usado pelos testes automaticos (local e no CI).
+# Troca o Oracle por H2 em memoria e usa chaves falsas: nada externo e chamado.
+spring:
+  datasource:
+    url: jdbc:h2:mem:citizentech;MODE=Oracle;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  ai:
+    openai:
+      api-key: chave-falsa-para-teste
+
+citizentech:
+  jwt:
+    secret: segredo-de-teste-com-pelo-menos-32-caracteres
