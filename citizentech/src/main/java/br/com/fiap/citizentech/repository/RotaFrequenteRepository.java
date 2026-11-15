@@ -10,6 +10,9 @@ public interface RotaFrequenteRepository extends JpaRepository<RotaFrequente, Lo
 
 	Page<RotaFrequente> findByPassageiroId(Long passageiroId, Pageable pageable);
 
+	/** Usado para o cuidador listar so os registros dos proprios passageiros. */
+	Page<RotaFrequente> findByPassageiroCuidadorId(Long cuidadorId, Pageable pageable);
+
 	boolean existsByPassageiroIdAndParadaIdAndLinhaId(Long passageiroId, Long paradaId, Long linhaId);
 
 	boolean existsByPassageiroIdAndParadaIdAndLinhaIdAndIdNot(Long passageiroId, Long paradaId, Long linhaId, Long id);

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,8 +14,13 @@ import br.com.fiap.citizentech.exception.RecursoNaoEncontradoException;
 import br.com.fiap.citizentech.model.Passageiro;
 import br.com.fiap.citizentech.model.enums.Perfil;
 import br.com.fiap.citizentech.repository.PassageiroRepository;
+import br.com.fiap.citizentech.security.UsuarioLogado;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Passageiros assistidos. Dado sensivel (LGPD): um CUIDADOR so enxerga e altera
+ * os passageiros que ele mesmo cadastrou; o GESTOR enxerga todos.
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -23,20 +29,22 @@ public class PassageiroService {
 	private final PassageiroRepository passageiroRepository;
 	private final UsuarioService usuarioService;
 
-	/** Lista todos os passageiros ou, se o cuidador for informado, so os dele. */
-	public Page<PassageiroResponse> listar(Long cuidadorId, Pageable pageable) {
-		Page<Passageiro> pagina = cuidadorId != null
-				? passageiroRepository.findByCuidadorId(cuidadorId, pageable)
+	/** Gestor: todos ou os do cuidador informado. Cuidador: sempre so os dele. */
+	public Page<PassageiroResponse> listar(Long cuidadorId, Pageable pageable, UsuarioLogado usuario) {
+		Long filtro = usuario.isCuidador() ? usuario.id() : cuidadorId;
+		Page<Passageiro> pagina = filtro != null
+				? passageiroRepository.findByCuidadorId(filtro, pageable)
 				: passageiroRepository.findAll(pageable);
 		return pagina.map(PassageiroResponse::from);
 	}
 
-	public PassageiroResponse buscarPorId(Long id) {
-		return PassageiroResponse.from(buscarEntidade(id));
+	public PassageiroResponse buscarPorId(Long id, UsuarioLogado usuario) {
+		return PassageiroResponse.from(buscarComAcesso(id, usuario));
 	}
 
 	@Transactional
-	public PassageiroResponse criar(PassageiroRequest request) {
+	public PassageiroResponse criar(PassageiroRequest request, UsuarioLogado usuario) {
+		verificarCuidadorDoRequest(request, usuario);
 		Passageiro passageiro = new Passageiro();
 		preencher(passageiro, request);
 		passageiro.setConsentimentoEm(LocalDateTime.now());
@@ -44,8 +52,9 @@ public class PassageiroService {
 	}
 
 	@Transactional
-	public PassageiroResponse atualizar(Long id, PassageiroRequest request) {
-		Passageiro passageiro = buscarEntidade(id);
+	public PassageiroResponse atualizar(Long id, PassageiroRequest request, UsuarioLogado usuario) {
+		Passageiro passageiro = buscarComAcesso(id, usuario);
+		verificarCuidadorDoRequest(request, usuario);
 		boolean novaVersaoDoTermo = !passageiro.getVersaoTermo().equals(request.versaoTermo().trim());
 		preencher(passageiro, request);
 		if (novaVersaoDoTermo) {
@@ -56,13 +65,33 @@ public class PassageiroService {
 	}
 
 	@Transactional
-	public void excluir(Long id) {
-		passageiroRepository.delete(buscarEntidade(id));
+	public void excluir(Long id, UsuarioLogado usuario) {
+		passageiroRepository.delete(buscarComAcesso(id, usuario));
 	}
 
 	public Passageiro buscarEntidade(Long id) {
 		return passageiroRepository.findById(id)
 				.orElseThrow(() -> new RecursoNaoEncontradoException("Passageiro", id));
+	}
+
+	/** Busca o passageiro e confere se o usuario logado pode acessa-lo. */
+	public Passageiro buscarComAcesso(Long id, UsuarioLogado usuario) {
+		Passageiro passageiro = buscarEntidade(id);
+		verificarAcesso(passageiro, usuario);
+		return passageiro;
+	}
+
+	/** Cuidador so acessa os proprios passageiros. Usado tambem por cartoes e rotas frequentes. */
+	public void verificarAcesso(Passageiro passageiro, UsuarioLogado usuario) {
+		if (usuario.isCuidador() && !passageiro.getCuidador().getId().equals(usuario.id())) {
+			throw new AccessDeniedException("Este passageiro pertence a outro cuidador");
+		}
+	}
+
+	private void verificarCuidadorDoRequest(PassageiroRequest request, UsuarioLogado usuario) {
+		if (usuario.isCuidador() && !request.cuidadorId().equals(usuario.id())) {
+			throw new AccessDeniedException("O cuidador so pode cadastrar passageiros para si mesmo");
+		}
 	}
 
 	private void preencher(Passageiro passageiro, PassageiroRequest request) {

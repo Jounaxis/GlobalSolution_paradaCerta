@@ -1,8 +1,7 @@
 package br.com.fiap.citizentech.controller;
 
 import static org.hamcrest.Matchers.hasItem;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -18,14 +17,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Testa os endpoints de ponta a ponta (controller -> service -> repository -> H2).
  * Cada teste roda em uma transacao desfeita no final, entao um nao interfere no outro.
+ * As chamadas usam um token de GESTOR, que tem acesso a todos os cadastros.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -45,7 +47,7 @@ class CrudIntegrationTest {
 				.andExpect(header().exists("Location"))
 				.andExpect(jsonPath("$.nome").value("Av. Paulista, 1000"));
 
-		mockMvc.perform(get("/api/paradas").param("size", "5").with(user("gestor")))
+		mockMvc.perform(get("/api/paradas").param("size", "5").with(gestor()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.content[*].codigoSptrans", hasItem(340015329)))
 				.andExpect(jsonPath("$.page.size").value(5));
@@ -64,7 +66,7 @@ class CrudIntegrationTest {
 
 	@Test
 	void devolve404QuandoNaoExiste() throws Exception {
-		mockMvc.perform(get("/api/paradas/999999").with(user("gestor")))
+		mockMvc.perform(get("/api/paradas/999999").with(gestor()))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.mensagem").value("Parada com id 999999 nao encontrado(a)"));
 	}
@@ -123,6 +125,12 @@ class CrudIntegrationTest {
 				.andExpect(status().isCreated());
 	}
 
+	/** Token JWT simulado de um GESTOR (o login de verdade e testado em SecurityIntegrationTest). */
+	private RequestPostProcessor gestor() {
+		return jwt().jwt(token -> token.subject("1").claim("perfil", "GESTOR"))
+				.authorities(new SimpleGrantedAuthority("ROLE_GESTOR"));
+	}
+
 	private String passageiroJson(long cuidadorId, boolean consentimento) {
 		return """
 				{"cuidadorId": %d, "nome": "Dona Ana", "tipoNecessidade": "BAIXA_VISAO",
@@ -138,14 +146,14 @@ class CrudIntegrationTest {
 
 	private ResultActions mudarStatus(long solicitacaoId, String status) throws Exception {
 		return mockMvc.perform(patch("/api/solicitacoes/{id}/status", solicitacaoId)
-				.with(user("gestor")).with(csrf())
+				.with(gestor())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"status\": \"" + status + "\"}"));
 	}
 
 	private ResultActions enviar(String url, String json) throws Exception {
 		return mockMvc.perform(post(url)
-				.with(user("gestor")).with(csrf())
+				.with(gestor())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json));
 	}
