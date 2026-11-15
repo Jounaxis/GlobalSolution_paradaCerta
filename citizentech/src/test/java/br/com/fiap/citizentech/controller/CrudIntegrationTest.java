@@ -1,5 +1,6 @@
 package br.com.fiap.citizentech.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,10 +20,14 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.annotation.Transactional;
+
+import br.com.fiap.citizentech.messaging.SolicitacaoCriadaEvent;
 
 /**
  * Testa os endpoints de ponta a ponta (controller -> service -> repository -> H2).
@@ -33,10 +38,14 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
+@RecordApplicationEvents
 class CrudIntegrationTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private ApplicationEvents eventos;
 
 	@Test
 	void criaParadaEListaPaginado() throws Exception {
@@ -150,6 +159,15 @@ class CrudIntegrationTest {
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.mensagemVoz").value("Pedido de embarque registrado para a linha 6091-10, "
 						+ "sentido Terminal Varginha. Aguarde na parada, o motorista do proximo onibus sera avisado."));
+
+		// o evento para o RabbitMQ foi disparado (o envio em si acontece depois do commit)
+		assertThat(eventos.stream(SolicitacaoCriadaEvent.class))
+				.singleElement()
+				.satisfies(evento -> {
+					assertThat(evento.totemId()).isEqualTo(totemId);
+					assertThat(evento.linhaId()).isEqualTo(linhaId);
+					assertThat(evento.solicitacaoId()).isNotNull();
+				});
 	}
 
 	private String passageiroJson(long cuidadorId, boolean consentimento) {

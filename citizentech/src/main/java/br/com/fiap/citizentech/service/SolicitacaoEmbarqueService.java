@@ -2,6 +2,7 @@ package br.com.fiap.citizentech.service;
 
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import br.com.fiap.citizentech.dto.response.TentativaEmbarqueResponse;
 import br.com.fiap.citizentech.exception.ConflitoException;
 import br.com.fiap.citizentech.exception.RecursoNaoEncontradoException;
 import br.com.fiap.citizentech.exception.RegraNegocioException;
+import br.com.fiap.citizentech.messaging.SolicitacaoCriadaEvent;
 import br.com.fiap.citizentech.model.Linha;
 import br.com.fiap.citizentech.model.Passageiro;
 import br.com.fiap.citizentech.model.SolicitacaoEmbarque;
@@ -38,6 +40,7 @@ import lombok.RequiredArgsConstructor;
  * </ul>
  * Quando a solicitacao chega sem mensagem de voz, a IA ({@link MensagemVozService}) escreve a frase
  * que o totem vai falar ao passageiro.
+ * Depois do commit, um evento vai para o RabbitMQ e o motorista e avisado de forma assincrona.
  */
 @Service
 @RequiredArgsConstructor
@@ -51,6 +54,7 @@ public class SolicitacaoEmbarqueService {
 	private final PassageiroService passageiroService;
 	private final LinhaService linhaService;
 	private final MensagemVozService mensagemVozService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	/** Lista todas as solicitacoes ou, se o status for informado, so as desse status. */
 	public Page<SolicitacaoEmbarqueResponse> listar(StatusSolicitacao status, Pageable pageable) {
@@ -97,7 +101,15 @@ public class SolicitacaoEmbarqueService {
 			solicitacao.setMensagemVoz(mensagemVozService.gerar(contextoDaMensagem(solicitacao)));
 		}
 
-		return SolicitacaoEmbarqueResponse.from(solicitacaoRepository.save(solicitacao));
+		SolicitacaoEmbarque salva = solicitacaoRepository.save(solicitacao);
+		// Vai para o RabbitMQ so depois do commit (ver SolicitacaoEventPublisher)
+		eventPublisher.publishEvent(new SolicitacaoCriadaEvent(
+				salva.getId(),
+				totem.getId(),
+				salva.getLinha() != null ? salva.getLinha().getId() : null,
+				salva.getTipoSinal(),
+				salva.getCriadaEm()));
+		return SolicitacaoEmbarqueResponse.from(salva);
 	}
 
 	@Transactional

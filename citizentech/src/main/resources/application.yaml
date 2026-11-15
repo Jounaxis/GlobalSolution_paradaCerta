@@ -31,6 +31,15 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        # Ate 3 tentativas no consumidor; depois a mensagem e rejeitada e vai para a DLQ
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2
 
   # ---------- Spring AI (OpenAI) ----------
   ai:
