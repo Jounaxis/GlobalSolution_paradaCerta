@@ -16,3 +16,5 @@ spring:
 citizentech:
   jwt:
     secret: segredo-de-teste-com-pelo-menos-32-caracteres
+  hash:
+    secret: segredo-hash-de-teste

@@ -1,0 +1,136 @@
+package br.com.fiap.citizentech.service;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import br.com.fiap.citizentech.dto.request.SolicitacaoEmbarqueRequest;
+import br.com.fiap.citizentech.dto.request.StatusSolicitacaoRequest;
+import br.com.fiap.citizentech.dto.response.AuditoriaSolicitacaoResponse;
+import br.com.fiap.citizentech.dto.response.SolicitacaoEmbarqueResponse;
+import br.com.fiap.citizentech.dto.response.TentativaEmbarqueResponse;
+import br.com.fiap.citizentech.exception.ConflitoException;
+import br.com.fiap.citizentech.exception.RecursoNaoEncontradoException;
+import br.com.fiap.citizentech.exception.RegraNegocioException;
+import br.com.fiap.citizentech.model.Passageiro;
+import br.com.fiap.citizentech.model.SolicitacaoEmbarque;
+import br.com.fiap.citizentech.model.Totem;
+import br.com.fiap.citizentech.model.enums.StatusSolicitacao;
+import br.com.fiap.citizentech.model.enums.StatusTotem;
+import br.com.fiap.citizentech.repository.AuditoriaSolicitacaoRepository;
+import br.com.fiap.citizentech.repository.SolicitacaoEmbarqueRepository;
+import br.com.fiap.citizentech.repository.TentativaEmbarqueRepository;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Regras da solicitacao de embarque, a entidade central do dominio:
+ * <ul>
+ * <li>a mesma chave de idempotencia nunca gera duas solicitacoes (RNF02);</li>
+ * <li>um passageiro so pode ter uma solicitacao ativa por vez;</li>
+ * <li>so totens ATIVOS podem abrir solicitacoes;</li>
+ * <li>solicitacoes em estado final (EMBARCADO, SEM_ONIBUS, CANCELADA) nao mudam mais.</li>
+ * </ul>
+ */
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class SolicitacaoEmbarqueService {
+
+	private final SolicitacaoEmbarqueRepository solicitacaoRepository;
+	private final TentativaEmbarqueRepository tentativaRepository;
+	private final AuditoriaSolicitacaoRepository auditoriaRepository;
+	private final TotemService totemService;
+	private final PassageiroService passageiroService;
+	private final LinhaService linhaService;
+
+	/** Lista todas as solicitacoes ou, se o status for informado, so as desse status. */
+	public Page<SolicitacaoEmbarqueResponse> listar(StatusSolicitacao status, Pageable pageable) {
+		Page<SolicitacaoEmbarque> pagina = status != null
+				? solicitacaoRepository.findByStatus(status, pageable)
+				: solicitacaoRepository.findAll(pageable);
+		return pagina.map(SolicitacaoEmbarqueResponse::from);
+	}
+
+	public SolicitacaoEmbarqueResponse buscarPorId(Long id) {
+		return SolicitacaoEmbarqueResponse.from(buscarEntidade(id));
+	}
+
+	@Transactional
+	public SolicitacaoEmbarqueResponse criar(SolicitacaoEmbarqueRequest request) {
+		String chave = request.chaveIdempotencia().trim();
+		if (solicitacaoRepository.existsByChaveIdempotencia(chave)) {
+			throw new ConflitoException("Ja existe uma solicitacao com a chave de idempotencia " + chave);
+		}
+
+		Totem totem = totemService.buscarEntidade(request.totemId());
+		if (totem.getStatus() != StatusTotem.ATIVO) {
+			throw new RegraNegocioException("O totem " + totem.getIdentificador() + " esta inativo");
+		}
+
+		SolicitacaoEmbarque solicitacao = new SolicitacaoEmbarque();
+		solicitacao.setTotem(totem);
+		solicitacao.setTipoSinal(request.tipoSinal());
+		solicitacao.setChaveIdempotencia(chave);
+		solicitacao.setMensagemVoz(request.mensagemVoz());
+		solicitacao.setStatus(StatusSolicitacao.CRIADA);
+
+		if (request.passageiroId() != null) {
+			Passageiro passageiro = passageiroService.buscarEntidade(request.passageiroId());
+			if (solicitacaoRepository.existsByPassageiroIdAndStatusIn(passageiro.getId(), StatusSolicitacao.ATIVOS)) {
+				throw new ConflitoException("O passageiro " + passageiro.getId() + " ja tem uma solicitacao ativa");
+			}
+			solicitacao.setPassageiro(passageiro);
+		}
+		if (request.linhaId() != null) {
+			solicitacao.setLinha(linhaService.buscarEntidade(request.linhaId()));
+		}
+
+		return SolicitacaoEmbarqueResponse.from(solicitacaoRepository.save(solicitacao));
+	}
+
+	@Transactional
+	public SolicitacaoEmbarqueResponse atualizarStatus(Long id, StatusSolicitacaoRequest request) {
+		SolicitacaoEmbarque solicitacao = buscarEntidade(id);
+		StatusSolicitacao atual = solicitacao.getStatus();
+		StatusSolicitacao novo = request.status();
+
+		if (atual.isFinal()) {
+			throw new RegraNegocioException("A solicitacao " + id + " ja foi encerrada como " + atual
+					+ " e nao pode mais mudar de status");
+		}
+		if (novo == StatusSolicitacao.CRIADA) {
+			throw new RegraNegocioException("Uma solicitacao nao pode voltar para o status CRIADA");
+		}
+
+		solicitacao.setStatus(novo);
+		return SolicitacaoEmbarqueResponse.from(solicitacao);
+	}
+
+	@Transactional
+	public void excluir(Long id) {
+		solicitacaoRepository.delete(buscarEntidade(id));
+	}
+
+	public List<TentativaEmbarqueResponse> listarTentativas(Long solicitacaoId) {
+		buscarEntidade(solicitacaoId);
+		return tentativaRepository.findBySolicitacaoIdOrderByAlertadoEmAsc(solicitacaoId).stream()
+				.map(TentativaEmbarqueResponse::from)
+				.toList();
+	}
+
+	/** Historico gravado pelo gatilho do Oracle. Funciona mesmo depois que a solicitacao foi excluida. */
+	public List<AuditoriaSolicitacaoResponse> listarAuditoria(Long solicitacaoId) {
+		return auditoriaRepository.findBySolicitacaoIdOrderByDataHoraAsc(solicitacaoId).stream()
+				.map(AuditoriaSolicitacaoResponse::from)
+				.toList();
+	}
+
+	public SolicitacaoEmbarque buscarEntidade(Long id) {
+		return solicitacaoRepository.findById(id)
+				.orElseThrow(() -> new RecursoNaoEncontradoException("Solicitacao de embarque", id));
+	}
+
+}
