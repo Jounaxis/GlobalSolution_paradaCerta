@@ -43,16 +43,18 @@ class MensagemVozServiceTest {
 
 	private ChatClient chatClient;
 	private MensagemVozService service;
+	private ChatClient.Builder builder;
+	private RecuperadorOrientacoes recuperador;
 
 	@BeforeEach
 	void configurar() throws IOException {
 		chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
-		ChatClient.Builder builder = mock(ChatClient.Builder.class);
+		builder = mock(ChatClient.Builder.class);
 		when(builder.defaultSystem(anyString())).thenReturn(builder);
 		when(builder.build()).thenReturn(chatClient);
-		RecuperadorOrientacoes recuperador = new RecuperadorOrientacoes(new JsonMapper(),
+		recuperador = new RecuperadorOrientacoes(new JsonMapper(),
 				new ClassPathResource("rag/orientacoes-embarque.json"));
-		service = new MensagemVozService(builder, recuperador);
+		service = new MensagemVozService(builder, recuperador, true);
 	}
 
 	@Test
@@ -74,12 +76,7 @@ class MensagemVozServiceTest {
 
 		service.gerar(BAIXA_VISAO_COM_LINHA);
 
-		@SuppressWarnings("unchecked")
-		ArgumentCaptor<Consumer<PromptUserSpec>> captor = ArgumentCaptor.forClass(Consumer.class);
-		// A ultima chamada e a feita pelo servico, apos preparar os mocks.
-		verify(chatClient.prompt(), atLeastOnce()).user(captor.capture());
-		PromptUserSpec pedido = mock(PromptUserSpec.class, RETURNS_SELF);
-		captor.getAllValues().getLast().accept(pedido);
+		PromptUserSpec pedido = capturarPedidoDoModelo();
 
 		ArgumentCaptor<String> orientacoes = ArgumentCaptor.forClass(String.class);
 		verify(pedido).text("Orientações recuperadas:\n{orientacoes}\n");
@@ -88,6 +85,18 @@ class MensagemVozServiceTest {
 		assertThat(orientacoes.getValue())
 				.contains("Confirme em palavras simples", "aguardar perto do totem")
 				.doesNotContain("BAIXA_VISAO", "6091-10", "Terminal Varginha", "PC-04");
+	}
+
+	@Test
+	void comRagDesabilitadoAindaGeraMensagemSemEnviarOrientacoes() {
+		MensagemVozService semRag = new MensagemVozService(builder, recuperador, false);
+		respostaDaIa("Aguarde na parada.");
+
+		ResultadoMensagemVoz mensagem = semRag.gerar(BAIXA_VISAO_COM_LINHA);
+
+		assertThat(mensagem.detalhes().origem()).isEqualTo(Origem.MODELO);
+		assertThat(mensagem.detalhes().referencias()).isEmpty();
+		verify(capturarPedidoDoModelo()).param("orientacoes", "");
 	}
 
 	@ParameterizedTest
@@ -158,6 +167,16 @@ class MensagemVozServiceTest {
 	void atualizaFraseParaOEstadoDoPedido(StatusSolicitacao status, String texto) {
 		assertThat(service.mensagemDeStatus(status, null, "Pedido registrado. Aguarde perto do totem."))
 				.isEqualTo(texto);
+	}
+
+	@SuppressWarnings("unchecked")
+	private PromptUserSpec capturarPedidoDoModelo() {
+		ArgumentCaptor<Consumer<PromptUserSpec>> captor = ArgumentCaptor.forClass(Consumer.class);
+		// A ultima chamada e a feita pelo servico, apos preparar os mocks.
+		verify(chatClient.prompt(), atLeastOnce()).user(captor.capture());
+		PromptUserSpec pedido = mock(PromptUserSpec.class, RETURNS_SELF);
+		captor.getAllValues().getLast().accept(pedido);
+		return pedido;
 	}
 
 	@SuppressWarnings("unchecked")

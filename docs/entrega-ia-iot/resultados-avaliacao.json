@@ -1,0 +1,802 @@
+{
+  "executadoEm": "2026-11-17T20:27:33.6490423-03:00",
+  "modelo": "qwen3:4b-instruct-2507-q4_K_M",
+  "versaoOllama": "0.40.16",
+  "prazoGeracaoMs": 3000,
+  "comRag": [
+    {
+      "id": "01",
+      "caso": "Botão sem identificação",
+      "rag": true,
+      "entrada": {
+        "sinal": "BOTAO",
+        "necessidade": null,
+        "linha": null,
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 1,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-03",
+        "PC-01",
+        "PC-02"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-03",
+          "assunto": "Dados incompletos da viagem",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 8, 14 e 15 (RNF10 e mensagem de voz)"
+        },
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-02",
+          "assunto": "Botão sem passageiro identificado",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 4, 13 e 23 (fluxo do botão sem cartão)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 59,
+      "bytesUtf8": 59,
+      "duracaoPostMs": 387,
+      "leitura": {
+        "status": "CRIADA",
+        "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "02",
+      "caso": "Cartão de baixa visão",
+      "rag": true,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "BAIXA_VISAO",
+        "linha": "6091-10",
+        "destino": "Terminal Varginha",
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 2,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-01",
+        "PC-04"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-04",
+          "assunto": "Orientação falada para baixa visão",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 3, 13 e 15 (aviso por voz na parada)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma perto do totem.",
+      "frases": 2,
+      "caracteres": 112,
+      "bytesUtf8": 112,
+      "duracaoPostMs": 347,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma perto do totem."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "03",
+      "caso": "Cartão de cadeira de rodas",
+      "rag": true,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "CADEIRA_DE_RODAS",
+        "linha": "6091-10",
+        "destino": "Terminal Varginha",
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 3,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-01",
+        "PC-05"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-05",
+          "assunto": "Embarque com cadeira de rodas",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 3 a 5 (apoio no embarque e estados da solicitação)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 107,
+      "bytesUtf8": 107,
+      "duracaoPostMs": 267,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "04",
+      "caso": "Mobilidade reduzida sem destino",
+      "rag": true,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "MOBILIDADE_REDUZIDA",
+        "linha": "7012-10",
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 4,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-01",
+        "PC-03",
+        "PC-06"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-03",
+          "assunto": "Dados incompletos da viagem",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 8, 14 e 15 (RNF10 e mensagem de voz)"
+        },
+        {
+          "id": "PC-06",
+          "assunto": "Embarque com mobilidade reduzida",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 2 a 4 (mais tempo para embarcar)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado para a linha 7012-10. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 80,
+      "bytesUtf8": 80,
+      "duracaoPostMs": 306,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 7012-10. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "05",
+      "caso": "Cartão de pessoa idosa",
+      "rag": true,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "IDOSO",
+        "linha": "875A-10",
+        "destino": "Aclimacao",
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 5,
+      "statusNaCriacao": "CRIADA",
+      "origem": "CONTINGENCIA",
+      "referenciasEsperadas": [
+        "PC-01",
+        "PC-07"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-07",
+          "assunto": "Orientação para passageiro idoso",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 2 a 4 e 8 (público e RNF07)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado para a linha 875A-10, sentido Aclimacao. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 99,
+      "bytesUtf8": 99,
+      "duracaoPostMs": 300,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 875A-10, sentido Aclimacao. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "06",
+      "caso": "Botão com linha confirmada",
+      "rag": true,
+      "entrada": {
+        "sinal": "BOTAO",
+        "necessidade": null,
+        "linha": "6091-10",
+        "destino": "Terminal Varginha",
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 6,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-01",
+        "PC-02"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-02",
+          "assunto": "Botão sem passageiro identificado",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 4, 13 e 23 (fluxo do botão sem cartão)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 107,
+      "bytesUtf8": 107,
+      "duracaoPostMs": 300,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "07",
+      "caso": "Baixa visão sem linha",
+      "rag": true,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "BAIXA_VISAO",
+        "linha": null,
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 7,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-03",
+        "PC-01",
+        "PC-04"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-03",
+          "assunto": "Dados incompletos da viagem",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 8, 14 e 15 (RNF10 e mensagem de voz)"
+        },
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-04",
+          "assunto": "Orientação falada para baixa visão",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 3, 13 e 15 (aviso por voz na parada)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 59,
+      "bytesUtf8": 59,
+      "duracaoPostMs": 317,
+      "leitura": {
+        "status": "CRIADA",
+        "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "08",
+      "caso": "Linha e destino fora do corpus de orientações",
+      "rag": true,
+      "entrada": {
+        "sinal": "BOTAO",
+        "necessidade": null,
+        "linha": "042X-10",
+        "destino": "Terminal Horizonte",
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 8,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-01",
+        "PC-02"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-02",
+          "assunto": "Botão sem passageiro identificado",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 4, 13 e 23 (fluxo do botão sem cartão)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado para a linha 042X-10, sentido Terminal Horizonte. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 108,
+      "bytesUtf8": 108,
+      "duracaoPostMs": 348,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 042X-10, sentido Terminal Horizonte. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "09",
+      "caso": "Texto legado fora do corpus com previsão inventada",
+      "rag": true,
+      "entrada": {
+        "sinal": "BOTAO",
+        "necessidade": null,
+        "linha": null,
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": "Saldo do cartão: vinte reais. O ônibus chega em 4 minutos.",
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 9,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-03",
+        "PC-01",
+        "PC-02"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-03",
+          "assunto": "Dados incompletos da viagem",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 8, 14 e 15 (RNF10 e mensagem de voz)"
+        },
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-02",
+          "assunto": "Botão sem passageiro identificado",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 4, 13 e 23 (fluxo do botão sem cartão)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 59,
+      "bytesUtf8": 59,
+      "duracaoPostMs": 312,
+      "leitura": {
+        "status": "CRIADA",
+        "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "10",
+      "caso": "Modelo descarregado",
+      "rag": true,
+      "entrada": {
+        "sinal": "BOTAO",
+        "necessidade": null,
+        "linha": null,
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": "tempo_limite"
+      },
+      "http": 201,
+      "solicitacaoId": 10,
+      "statusNaCriacao": "CRIADA",
+      "origem": "CONTINGENCIA",
+      "referenciasEsperadas": [
+        "PC-03",
+        "PC-01",
+        "PC-02"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-03",
+          "assunto": "Dados incompletos da viagem",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 8, 14 e 15 (RNF10 e mensagem de voz)"
+        },
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-02",
+          "assunto": "Botão sem passageiro identificado",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 4, 13 e 23 (fluxo do botão sem cartão)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado. Aguarde na parada.",
+      "frases": 2,
+      "caracteres": 49,
+      "bytesUtf8": 49,
+      "duracaoPostMs": 3027,
+      "leitura": {
+        "status": "CRIADA",
+        "mensagem": "Pedido de embarque registrado. Aguarde na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "11",
+      "caso": "Endpoint do provedor indisponível",
+      "rag": true,
+      "entrada": {
+        "sinal": "BOTAO",
+        "necessidade": null,
+        "linha": null,
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": "provedor_indisponivel"
+      },
+      "http": 201,
+      "solicitacaoId": 1,
+      "statusNaCriacao": "CRIADA",
+      "origem": "CONTINGENCIA",
+      "referenciasEsperadas": [
+        "PC-03",
+        "PC-01",
+        "PC-02"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-03",
+          "assunto": "Dados incompletos da viagem",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 8, 14 e 15 (RNF10 e mensagem de voz)"
+        },
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-02",
+          "assunto": "Botão sem passageiro identificado",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 4, 13 e 23 (fluxo do botão sem cartão)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado. Aguarde na parada.",
+      "frases": 2,
+      "caracteres": 49,
+      "bytesUtf8": 49,
+      "duracaoPostMs": 508,
+      "leitura": {
+        "status": "CRIADA",
+        "mensagem": "Pedido de embarque registrado. Aguarde na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "12",
+      "caso": "Aviso e confirmação de embarque",
+      "rag": true,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "CADEIRA_DE_RODAS",
+        "linha": "6091-10",
+        "destino": "Terminal Varginha",
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 11,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [
+        "PC-01",
+        "PC-05"
+      ],
+      "referenciasRecuperadas": [
+        {
+          "id": "PC-01",
+          "assunto": "Confirmação do pedido",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)"
+        },
+        {
+          "id": "PC-05",
+          "assunto": "Embarque com cadeira de rodas",
+          "origem": "Parada-Certa-Documentacao.pdf, p. 3 a 5 (apoio no embarque e estados da solicitação)"
+        }
+      ],
+      "mensagem": "Pedido de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 107,
+      "bytesUtf8": 107,
+      "duracaoPostMs": 660,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada."
+      },
+      "encerramento": {
+        "status": "EMBARCADO",
+        "mensagem": "Embarque confirmado para a linha 6091-10, sentido Terminal Varginha."
+      },
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    }
+  ],
+  "semRag": [
+    {
+      "id": "01",
+      "caso": "Botão sem identificação",
+      "rag": false,
+      "entrada": {
+        "sinal": "BOTAO",
+        "necessidade": null,
+        "linha": null,
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 1,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [],
+      "referenciasRecuperadas": [],
+      "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 59,
+      "bytesUtf8": 59,
+      "duracaoPostMs": 1505,
+      "leitura": {
+        "status": "CRIADA",
+        "mensagem": "Pedido de embarque registrado. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "02",
+      "caso": "Cartão de baixa visão",
+      "rag": false,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "BAIXA_VISAO",
+        "linha": "6091-10",
+        "destino": "Terminal Varginha",
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 2,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [],
+      "referenciasRecuperadas": [],
+      "mensagem": "Pedido de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 107,
+      "bytesUtf8": 107,
+      "duracaoPostMs": 235,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    },
+    {
+      "id": "04",
+      "caso": "Mobilidade reduzida sem destino",
+      "rag": false,
+      "entrada": {
+        "sinal": "CARTAO",
+        "necessidade": "MOBILIDADE_REDUZIDA",
+        "linha": "7012-10",
+        "destino": null,
+        "previsao": null,
+        "mensagemLegada": null,
+        "condicao": null
+      },
+      "http": 201,
+      "solicitacaoId": 3,
+      "statusNaCriacao": "CRIADA",
+      "origem": "MODELO",
+      "referenciasEsperadas": [],
+      "referenciasRecuperadas": [],
+      "mensagem": "Pedido de embarque registrado para a linha 7012-10. Aguarde com calma na parada.",
+      "frases": 2,
+      "caracteres": 80,
+      "bytesUtf8": 80,
+      "duracaoPostMs": 205,
+      "leitura": {
+        "status": "MOTORISTA_AVISADO",
+        "mensagem": "Aviso de embarque registrado para a linha 7012-10. Aguarde com calma na parada."
+      },
+      "encerramento": null,
+      "criterios": {
+        "recuperacao": true,
+        "fidelidade": true,
+        "clareza": true,
+        "tamanho": true,
+        "persistencia": true,
+        "origem": true
+      },
+      "aprovado": true
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.openai.errors.RateLimitException;
@@ -52,14 +53,17 @@ public class MensagemVozService {
 
 	private final ChatClient chatClient;
 	private final RecuperadorOrientacoes recuperador;
+	private final boolean ragHabilitado;
 
-	public MensagemVozService(ChatClient.Builder chatClientBuilder, RecuperadorOrientacoes recuperador) {
+	public MensagemVozService(ChatClient.Builder chatClientBuilder, RecuperadorOrientacoes recuperador,
+			@Value("${citizentech.ia.rag.habilitado:true}") boolean ragHabilitado) {
 		this.chatClient = chatClientBuilder.defaultSystem(INSTRUCOES).build();
 		this.recuperador = recuperador;
+		this.ragHabilitado = ragHabilitado;
 	}
 
 	public ResultadoMensagemVoz gerar(ContextoMensagemVoz contexto) {
-		List<OrientacaoEmbarque> orientacoes = recuperador.buscar(contexto);
+		List<OrientacaoEmbarque> orientacoes = ragHabilitado ? recuperador.buscar(contexto) : List.of();
 		log.debug("Orientacoes RAG recuperadas: {}", orientacoes);
 		List<Referencia> referencias = orientacoes.stream()
 				.map(trecho -> new Referencia(trecho.id(), trecho.assunto(), trecho.origem()))
