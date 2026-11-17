@@ -12,7 +12,7 @@ O enunciado da disciplina pede IA generativa integrada, uma técnica de aprofund
 
 A equipe escolheu aplicar RAG às mensagens de voz. A documentação do Parada Certa fundamenta o fluxo de embarque, o RF11, o RNF07 e a reprodução de voz no simulador (p. 4–8 e 14–16). O roteiro desta entrega segue os cerca de 12 casos solicitados. O DDL de referência especifica `SOLICITACAO_EMBARQUE.MENSAGEM_VOZ` como `VARCHAR2(300)`.
 
-## Fluxo atual
+## Fluxo no commit base
 
 `POST /auth/login` emite o JWT. O `POST /api/solicitacoes` exige o perfil `GESTOR` e gera o texto quando o campo `mensagemVoz` está ausente ou vazio. O `MensagemVozService` chama a OpenAI via Spring AI 2.0.1, com `OPENAI_MODEL` configurável e `gpt-4o-mini` como padrão. A exceção do cliente ou a resposta vazia aciona a frase padrão local. O texto é persistido e pode ser conferido com `GET /api/solicitacoes/{id}`.
 

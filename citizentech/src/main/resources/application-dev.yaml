@@ -18,8 +18,6 @@ spring:
     openai:
       # Sem chave real a chamada falha e o totem usa a frase padrao (fallback)
       api-key: ${OPENAI_API_KEY:sem-chave-no-perfil-dev}
-    retry:
-      max-attempts: 1
 
 citizentech:
   jwt:

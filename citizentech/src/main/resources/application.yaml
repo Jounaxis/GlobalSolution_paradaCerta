@@ -46,16 +46,12 @@ spring:
     openai:
       api-key: ${OPENAI_API_KEY}
       chat:
+        # Uma tentativa com prazo de 3 s; o totem recebe a frase padrao em caso de falha.
+        timeout: 3s
+        max-retries: 0
         options:
           model: ${OPENAI_MODEL:gpt-4o-mini}
           temperature: 0.3
-    # O totem espera a resposta: no maximo 2 tentativas rapidas e depois cai na frase padrao
-    retry:
-      max-attempts: 2
-      backoff:
-        initial-interval: 500ms
-        multiplier: 2
-        max-interval: 1s
 
   # ---------- Timeouts das chamadas HTTP externas (OpenAI) ----------
   http:

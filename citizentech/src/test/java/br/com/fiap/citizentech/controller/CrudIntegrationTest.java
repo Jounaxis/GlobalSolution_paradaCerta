@@ -126,7 +126,8 @@ class CrudIntegrationTest {
 
 		// encerra a solicitacao e tenta mudar de novo: 422
 		mudarStatus(solicitacaoId, "EMBARCADO").andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("EMBARCADO"));
+				.andExpect(jsonPath("$.status").value("EMBARCADO"))
+				.andExpect(jsonPath("$.mensagemVoz").value("Embarque confirmado."));
 		mudarStatus(solicitacaoId, "CANCELADA").andExpect(status().isUnprocessableContent());
 
 		// com a anterior encerrada, o passageiro pode abrir outra
@@ -141,7 +142,7 @@ class CrudIntegrationTest {
 	}
 
 	@Test
-	void solicitacaoSemMensagemRecebeAFraseDeVoz() throws Exception {
+	void apiMontaAFraseDeVozMesmoQuandoOClienteEnviaMensagemLegada() throws Exception {
 		long paradaId = criar("/api/paradas", """
 				{"codigoSptrans": 2002, "nome": "Parada Hospital"}
 				""");
@@ -154,11 +155,16 @@ class CrudIntegrationTest {
 
 		// no perfil de teste a OpenAI nao responde, entao a solicitacao recebe a frase padrao
 		enviar("/api/solicitacoes", """
-				{"totemId": %d, "linhaId": %d, "tipoSinal": "BOTAO", "chaveIdempotencia": "chave-voz"}
+				{"totemId": %d, "linhaId": %d, "tipoSinal": "BOTAO", "chaveIdempotencia": "chave-voz",
+				 "mensagemVoz": "Ônibus chega em 4 minutos."}
 				""".formatted(totemId, linhaId))
 				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.status").value("CRIADA"))
+				.andExpect(jsonPath("$.geracaoMensagemVoz.origem").value("CONTINGENCIA"))
+				.andExpect(jsonPath("$.geracaoMensagemVoz.referencias[0].id").value("PC-01"))
+				.andExpect(jsonPath("$.geracaoMensagemVoz.referencias[1].id").value("PC-02"))
 				.andExpect(jsonPath("$.mensagemVoz").value("Pedido de embarque registrado para a linha 6091-10, "
-						+ "sentido Terminal Varginha. Aguarde na parada, o motorista do proximo onibus sera avisado."));
+						+ "sentido Terminal Varginha. Aguarde na parada."));
 
 		// o evento para o RabbitMQ foi disparado (o envio em si acontece depois do commit)
 		assertThat(eventos.stream(SolicitacaoCriadaEvent.class))

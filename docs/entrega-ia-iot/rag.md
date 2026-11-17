@@ -7,7 +7,7 @@ Cada trecho na [base de orientações](../../citizentech/src/main/resources/rag/
 1. Na criação de um pedido, a consulta inclui a expressão de confirmação e, conforme os campos disponíveis, a necessidade cadastrada ou o botão sem identificação, a ausência de linha e a ausência de destino.
 2. O recuperador normaliza maiúsculas, acentos e separadores. Cada expressão distinta em comum entre a consulta e os termos de um trecho vale um ponto.
 3. Seleciona até três trechos com pontuação positiva. A pontuação mais alta vem primeiro e o ID desempata. Uma consulta sem expressão correspondente devolve lista vazia.
-4. O Spring AI recebe o texto dos trechos selecionados, ao lado dos dados de viagem usados pelo prompt. O tipo de necessidade fica no backend e orienta a recuperação. Cada referência pode ser conferida no log `DEBUG` da API.
+4. O Spring AI recebe o texto dos trechos selecionados. O tipo de necessidade orienta a recuperação no backend. A API usa os dados de viagem para compor a frase de confirmação e devolve as referências no `POST`. Os trechos completos podem ser conferidos no log `DEBUG`. Veja as regras da [mensagem no fluxo de embarque](fluxo-mensagem.md).
 
 Com sete trechos e termos derivados de campos estruturados, a busca por expressão permite prever e verificar a ordem das referências sem adicionar um serviço de embeddings ou um índice externo. A base tem vocabulário controlado. Sinônimos ausentes dos termos cadastrados podem ficar sem correspondência.
 
@@ -21,9 +21,9 @@ Para o botão sem passageiro e sem linha, procure `Orientacoes RAG recuperadas` 
 
 A suíte Maven passou com 33 testes. O recuperador foi verificado para as quatro necessidades, o botão sem identificação, a ausência de destino, a ordenação e a consulta fora da base. O teste do `MensagemVozService` usa um `ChatClient` controlado e confere o texto injetado no prompt e a ausência do campo de tipo de necessidade.
 
-## Execução com o modelo real em 17/11/2026
+## Execução inicial do RAG antes das regras de composição
 
-Os dois pedidos fictícios foram enviados à API autenticada no perfil `dev,ia-local`, com o Qwen3 4B no Ollama. Ambos retornaram HTTP 201 e preservaram a mensagem no `GET`. O log registrou `origem=MODELO` em ambos.
+Em 17/11/2026, os dois pedidos fictícios foram enviados à API autenticada no perfil `dev,ia-local`, com o Qwen3 4B no Ollama. Ambos retornaram HTTP 201 e preservaram a mensagem no `GET`. O log registrou `origem=MODELO` em ambos.
 
 | Cenário | Referências recuperadas | Caracteres | Tempo do `POST` | Mensagem persistida |
 | --- | --- | ---: | ---: | --- |

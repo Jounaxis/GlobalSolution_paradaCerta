@@ -63,6 +63,8 @@ class AvisoMotoristaServiceTest {
 		avisoMotoristaService.avisar(solicitacao.getId());
 
 		assertThat(solicitacao.getStatus()).isEqualTo(StatusSolicitacao.MOTORISTA_AVISADO);
+		assertThat(solicitacao.getMensagemVoz()).isEqualTo(
+				"Aviso de embarque registrado para a linha 6091-10, sentido Terminal Varginha. Espere perto do totem.");
 		List<TentativaEmbarque> tentativas = tentativaRepository.findBySolicitacaoIdOrderByAlertadoEmAsc(solicitacao.getId());
 		assertThat(tentativas).hasSize(1);
 		assertThat(tentativas.getFirst().getResultado()).isEqualTo(ResultadoTentativa.PENDENTE);
@@ -87,6 +89,7 @@ class AvisoMotoristaServiceTest {
 		avisoMotoristaService.avisar(solicitacao.getId());
 
 		assertThat(solicitacao.getStatus()).isEqualTo(StatusSolicitacao.CRIADA);
+		assertThat(solicitacao.getMensagemVoz()).isEqualTo("Pedido de embarque registrado. Espere perto do totem.");
 		assertThat(tentativaRepository.findBySolicitacaoIdOrderByAlertadoEmAsc(solicitacao.getId())).isEmpty();
 	}
 
@@ -101,6 +104,7 @@ class AvisoMotoristaServiceTest {
 				.linha(linhaDaSolicitacao)
 				.tipoSinal(TipoSinal.BOTAO)
 				.chaveIdempotencia(chave)
+				.mensagemVoz("Pedido de embarque registrado. Espere perto do totem.")
 				.build());
 	}
 

@@ -1,5 +1,6 @@
 package br.com.fiap.citizentech.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import br.com.fiap.citizentech.model.enums.TipoSinal;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -23,6 +24,7 @@ public record SolicitacaoEmbarqueRequest(
 		@Size(max = 80, message = "A chave de idempotencia deve ter no maximo 80 caracteres")
 		String chaveIdempotencia,
 
+		@Schema(deprecated = true, description = "Campo legado. A API cria a mensagem de voz do pedido.")
 		@Size(max = 300, message = "A mensagem de voz deve ter no maximo 300 caracteres")
 		String mensagemVoz) {
 }

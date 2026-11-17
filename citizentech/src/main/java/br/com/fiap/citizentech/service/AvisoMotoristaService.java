@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.fiap.citizentech.ai.MensagemVozService;
 import br.com.fiap.citizentech.model.SolicitacaoEmbarque;
 import br.com.fiap.citizentech.model.TentativaEmbarque;
 import br.com.fiap.citizentech.model.enums.ResultadoTentativa;
@@ -31,6 +32,7 @@ public class AvisoMotoristaService {
 
 	private final SolicitacaoEmbarqueRepository solicitacaoRepository;
 	private final TentativaEmbarqueRepository tentativaRepository;
+	private final MensagemVozService mensagemVozService;
 
 	@Transactional
 	public void avisar(Long solicitacaoId) {
@@ -57,6 +59,8 @@ public class AvisoMotoristaService {
 		tentativaRepository.save(tentativa);
 
 		solicitacao.setStatus(StatusSolicitacao.MOTORISTA_AVISADO);
+		solicitacao.setMensagemVoz(mensagemVozService.mensagemDeStatus(solicitacao.getStatus(), solicitacao.getLinha(),
+				solicitacao.getMensagemVoz()));
 		log.info("Motoristas da linha {} avisados sobre a solicitacao {}",
 				solicitacao.getLinha().getLetreiro(), solicitacaoId);
 	}

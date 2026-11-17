@@ -6,6 +6,5 @@ spring:
       # O cliente exige um valor. O servidor local do Ollama o ignora.
       api-key: ollama
       chat:
-        max-retries: 0
         options:
           model: ${OLLAMA_MODEL:qwen3:4b-instruct-2507-q4_K_M}

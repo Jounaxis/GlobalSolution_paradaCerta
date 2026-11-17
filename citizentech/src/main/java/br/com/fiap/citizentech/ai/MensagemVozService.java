@@ -1,59 +1,52 @@
 package br.com.fiap.citizentech.ai;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import com.openai.errors.RateLimitException;
 
+import br.com.fiap.citizentech.ai.ResultadoMensagemVoz.Detalhes;
+import br.com.fiap.citizentech.ai.ResultadoMensagemVoz.Origem;
+import br.com.fiap.citizentech.ai.ResultadoMensagemVoz.Referencia;
+import br.com.fiap.citizentech.model.Linha;
+import br.com.fiap.citizentech.model.enums.StatusSolicitacao;
 import br.com.fiap.citizentech.model.enums.TipoNecessidade;
-import br.com.fiap.citizentech.model.enums.TipoSinal;
 
-/**
- * Funcionalidade de IA generativa da Parada Certa (Spring AI + OpenAI).
- * <p>
- * Quando uma solicitacao de embarque e criada, o LLM escreve a frase que o totem
- * fala ao passageiro, adaptada ao tipo de necessidade, a linha e ao destino.
- * As orientacoes de acessibilidade sao recuperadas de uma base textual do projeto.
- * <p>
- * Se a OpenAI falhar ou demorar, entra uma frase padrao montada aqui mesmo:
- * o totem nunca fica sem resposta.
- */
+/** Gera a orientação falada e monta a mensagem com os fatos confirmados pela API. */
 @Service
 public class MensagemVozService {
 
 	private static final Logger log = LoggerFactory.getLogger(MensagemVozService.class);
-
-	/** Mesmo tamanho da coluna solicitacao_embarque.mensagem_voz. */
 	static final int TAMANHO_MAXIMO = 300;
+	private static final Duration PRAZO_MODELO = Duration.ofSeconds(3);
+	private static final String ESPERA_GERAL = "Aguarde na parada.";
+	private static final Pattern ORIENTACAO_SEGURA = Pattern.compile(
+			"(?:por favor, )?(?:aguarde|espere)(?: com calma)? (?:na parada|perto do totem)\\.",
+			Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
 
 	private static final String INSTRUCOES = """
-			Voce escreve as frases faladas por um totem de parada de onibus em Sao Paulo.
-			O totem registra o pedido de ajuda para embarcar.
-
-			Regras da frase:
-			- Portugues do Brasil, tom acolhedor e direto, no maximo 2 frases e 250 caracteres.
-			- Texto puro para leitura em voz alta: sem emojis, listas, aspas, siglas ou numeros de telefone.
-			- Confirme que o pedido de embarque foi registrado.
-			- Se a linha e o destino forem informados, cite os dois.
-			- Nao prometa horario de chegada nem diga quantos minutos faltam.
-			- Use as orientacoes recuperadas para adaptar a fala aos dados disponiveis.
-			- As orientacoes nao confirmam fatos sobre este pedido. Evite mencionar a necessidade do passageiro.
-			Responda somente com a frase.
+			Escreva uma única instrução de espera falada por um totem de ônibus, em português do Brasil.
+			A API já escreve a confirmação do pedido e os dados da viagem.
+			Use as orientações recuperadas apenas para escolher a forma de dizer onde aguardar.
+			Combine as seguintes partes na ordem:
+			- "Por favor, " (opcional).
+			- "Aguarde" ou "Espere".
+			- " com calma" (opcional).
+			- Use " na parada" como padrão. Use " perto do totem" se o trecho orientar a esperar perto do totem.
+			Termine com ponto. Entregue somente a frase, sem aspas ou explicações.
 			""";
 
 	private static final String PEDIDO = """
-			Linha: {linha}
-			Destino: {destino}
-			Parada: {parada}
-			Acionamento: {sinal}
-
-			Orientacoes recuperadas:
+			Orientações recuperadas:
 			{orientacoes}
 			""";
 
@@ -65,30 +58,28 @@ public class MensagemVozService {
 		this.recuperador = recuperador;
 	}
 
-	public String gerar(ContextoMensagemVoz contexto) {
+	public ResultadoMensagemVoz gerar(ContextoMensagemVoz contexto) {
+		List<OrientacaoEmbarque> orientacoes = recuperador.buscar(contexto);
+		log.debug("Orientacoes RAG recuperadas: {}", orientacoes);
+		List<Referencia> referencias = orientacoes.stream()
+				.map(trecho -> new Referencia(trecho.id(), trecho.assunto(), trecho.origem()))
+				.toList();
+		String trechos = orientacoes.stream()
+				.map(orientacao -> "- " + orientacao.texto())
+				.collect(Collectors.joining("\n"));
 		try {
-			List<OrientacaoEmbarque> orientacoes = recuperador.buscar(contexto);
-			log.debug("Orientacoes RAG recuperadas: {}", orientacoes);
-			String orientacoesRecuperadas = orientacoes.stream()
-					.map(orientacao -> "- " + orientacao.texto())
-					.collect(Collectors.joining("\n"));
 			String resposta = chatClient.prompt()
-					.user(usuario -> usuario.text(PEDIDO)
-							.param("linha", valor(contexto.letreiroLinha(), "nao informada"))
-							.param("destino", valor(contexto.destinoLinha(), "nao informado"))
-							.param("parada", valor(contexto.nomeParada(), "nao informada"))
-							.param("sinal", contexto.tipoSinal() == TipoSinal.CARTAO
-									? "cartao do passageiro" : "botao do totem")
-							.param("orientacoes", valor(orientacoesRecuperadas, "nenhuma orientacao especifica")))
-					.call()
-					.content();
-
-			String mensagem = limpar(resposta);
-			if (!mensagem.isEmpty()) {
+					.user(usuario -> usuario.text(PEDIDO).param("orientacoes", trechos))
+					.stream()
+					.content()
+					.collect(Collectors.joining())
+					.block(PRAZO_MODELO);
+			String orientacao = resposta == null ? "" : resposta.strip().replaceAll("\\s+", " ");
+			if (ORIENTACAO_SEGURA.matcher(orientacao).matches()) {
 				log.debug("Mensagem de voz: origem=MODELO");
-				return mensagem;
+				return resultado(contexto, orientacao, Origem.MODELO, referencias);
 			}
-			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo=resposta_vazia");
+			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo=resposta_invalida");
 		} catch (RateLimitException e) {
 			String codigo = e.code().orElse("");
 			String codigoSeguro = switch (codigo) {
@@ -99,51 +90,66 @@ public class MensagemVozService {
 			};
 			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo=RateLimitException codigo={}", codigoSeguro);
 		} catch (RuntimeException e) {
-			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo={}", e.getClass().getSimpleName());
+			String motivo = e.getCause() instanceof TimeoutException ? "tempo_limite" : e.getClass().getSimpleName();
+			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo={}", motivo);
 		}
-		return mensagemPadrao(contexto);
+		String orientacao = switch (contexto.tipoNecessidade()) {
+			case BAIXA_VISAO -> "Aguarde perto do totem.";
+			case MOBILIDADE_REDUZIDA, IDOSO -> "Aguarde com calma na parada.";
+			case null, default -> ESPERA_GERAL;
+		};
+		return resultado(contexto, orientacao, Origem.CONTINGENCIA, referencias);
 	}
 
-	/** Frase usada quando a IA nao responde. Segue as mesmas regras do prompt. */
-	String mensagemPadrao(ContextoMensagemVoz contexto) {
-		StringBuilder frase = new StringBuilder("Pedido de embarque registrado");
-		if (contexto.letreiroLinha() != null) {
-			frase.append(" para a linha ").append(contexto.letreiroLinha());
-			if (contexto.destinoLinha() != null) {
-				frase.append(", sentido ").append(contexto.destinoLinha());
+	public String mensagemDeStatus(StatusSolicitacao status, Linha linha, String mensagemAnterior) {
+		String orientacao = status == StatusSolicitacao.MOTORISTA_AVISADO ? orientacaoAnterior(mensagemAnterior) : "";
+		return montar(status, linha == null ? null : linha.getLetreiro(), linha == null ? null : linha.getDestino(),
+				orientacao);
+	}
+
+	private ResultadoMensagemVoz resultado(ContextoMensagemVoz contexto, String orientacao, Origem origem,
+			List<Referencia> referencias) {
+		String texto = montar(StatusSolicitacao.CRIADA, contexto.letreiroLinha(), contexto.destinoLinha(), orientacao);
+		return new ResultadoMensagemVoz(texto, new Detalhes(origem, referencias));
+	}
+
+	private String orientacaoAnterior(String mensagem) {
+		int separador = mensagem == null ? -1 : mensagem.indexOf(". ");
+		if (separador < 0) {
+			return ESPERA_GERAL;
+		}
+		String orientacao = mensagem.substring(separador + 2);
+		return ORIENTACAO_SEGURA.matcher(orientacao).matches() ? orientacao : ESPERA_GERAL;
+	}
+
+	private String montar(StatusSolicitacao status, String linha, String destino, String orientacao) {
+		String inicio = switch (status) {
+			case CRIADA -> "Pedido de embarque registrado";
+			case MOTORISTA_AVISADO -> "Aviso de embarque registrado";
+			case EMBARCADO -> "Embarque confirmado";
+			case NAO_ATENDIDA -> "O pedido ainda não foi atendido";
+			case SEM_ONIBUS -> "Nenhum ônibus foi encontrado";
+			case CANCELADA -> "Pedido de embarque cancelado";
+		};
+		String finalDaMensagem = orientacao.isEmpty() ? "." : ". " + orientacao;
+		String letreiro = rotuloFalado(linha);
+		if (letreiro.isEmpty()) {
+			return inicio + finalDaMensagem;
+		}
+		String comLinha = inicio + " para a linha " + letreiro;
+		String destinoFalado = rotuloFalado(destino);
+		if (!destinoFalado.isEmpty()) {
+			String comDestino = comLinha + ", sentido " + destinoFalado + finalDaMensagem;
+			if (comDestino.getBytes(StandardCharsets.UTF_8).length <= TAMANHO_MAXIMO) {
+				return comDestino;
 			}
 		}
-		frase.append(". ").append(orientacao(contexto.tipoNecessidade()));
-		return frase.toString();
+		String semDestino = comLinha + finalDaMensagem;
+		return semDestino.getBytes(StandardCharsets.UTF_8).length <= TAMANHO_MAXIMO
+				? semDestino : inicio + finalDaMensagem;
 	}
 
-	private String orientacao(TipoNecessidade necessidade) {
-		if (necessidade == null) {
-			return "Aguarde na parada, o motorista do proximo onibus sera avisado.";
-		}
-		return switch (necessidade) {
-			case BAIXA_VISAO -> "Fique perto do totem, o onibus sera anunciado por voz quando chegar.";
-			case CADEIRA_DE_RODAS -> "Aguarde na parada, o motorista vai preparar a rampa de acesso.";
-			case MOBILIDADE_REDUZIDA, IDOSO -> "Aguarde na parada, o motorista vai esperar o seu embarque com calma.";
-		};
+	private String rotuloFalado(String valor) {
+		return valor == null ? "" : valor.replaceAll("[.!?…。！？\\p{C}\\p{Z}\\s]+", " ").strip();
 	}
-
-	/** Tira aspas e quebras de linha e corta no limite da coluna, sem partir palavras. */
-	static String limpar(String resposta) {
-		if (resposta == null) {
-			return "";
-		}
-		String texto = resposta.replaceAll("[\"“”]", "").replaceAll("\\s+", " ").trim();
-		if (texto.length() <= TAMANHO_MAXIMO) {
-			return texto;
-		}
-		String cortado = texto.substring(0, TAMANHO_MAXIMO);
-		int ultimoEspaco = cortado.lastIndexOf(' ');
-		return (ultimoEspaco > 0 ? cortado.substring(0, ultimoEspaco) : cortado).trim();
-	}
-
-	private static String valor(String valor, String padrao) {
-		return StringUtils.hasText(valor) ? valor : padrao;
-	}
-
 }

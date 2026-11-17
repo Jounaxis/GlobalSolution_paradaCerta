@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.fiap.citizentech.ai.ContextoMensagemVoz;
 import br.com.fiap.citizentech.ai.MensagemVozService;
+import br.com.fiap.citizentech.ai.ResultadoMensagemVoz;
 import br.com.fiap.citizentech.dto.request.SolicitacaoEmbarqueRequest;
 import br.com.fiap.citizentech.dto.request.StatusSolicitacaoRequest;
 import br.com.fiap.citizentech.dto.response.AuditoriaSolicitacaoResponse;
@@ -38,8 +39,7 @@ import lombok.RequiredArgsConstructor;
  * <li>so totens ATIVOS podem abrir solicitacoes;</li>
  * <li>solicitacoes em estado final (EMBARCADO, SEM_ONIBUS, CANCELADA) nao mudam mais.</li>
  * </ul>
- * Quando a solicitacao chega sem mensagem de voz, a IA ({@link MensagemVozService}) escreve a frase
- * que o totem vai falar ao passageiro.
+ * A API monta a mensagem de voz ao criar o pedido e atualiza o texto quando o status muda.
  * Depois do commit, um evento vai para o RabbitMQ e o motorista e avisado de forma assincrona.
  */
 @Service
@@ -84,7 +84,6 @@ public class SolicitacaoEmbarqueService {
 		solicitacao.setTotem(totem);
 		solicitacao.setTipoSinal(request.tipoSinal());
 		solicitacao.setChaveIdempotencia(chave);
-		solicitacao.setMensagemVoz(request.mensagemVoz());
 		solicitacao.setStatus(StatusSolicitacao.CRIADA);
 
 		if (request.passageiroId() != null) {
@@ -97,9 +96,8 @@ public class SolicitacaoEmbarqueService {
 		if (request.linhaId() != null) {
 			solicitacao.setLinha(linhaService.buscarEntidade(request.linhaId()));
 		}
-		if (request.mensagemVoz() == null || request.mensagemVoz().isBlank()) {
-			solicitacao.setMensagemVoz(mensagemVozService.gerar(contextoDaMensagem(solicitacao)));
-		}
+		ResultadoMensagemVoz mensagem = mensagemVozService.gerar(contextoDaMensagem(solicitacao));
+		solicitacao.setMensagemVoz(mensagem.texto());
 
 		SolicitacaoEmbarque salva = solicitacaoRepository.save(solicitacao);
 		// Vai para o RabbitMQ so depois do commit (ver SolicitacaoEventPublisher)
@@ -109,7 +107,7 @@ public class SolicitacaoEmbarqueService {
 				salva.getLinha() != null ? salva.getLinha().getId() : null,
 				salva.getTipoSinal(),
 				salva.getCriadaEm()));
-		return SolicitacaoEmbarqueResponse.from(salva);
+		return SolicitacaoEmbarqueResponse.from(salva, mensagem.detalhes());
 	}
 
 	@Transactional
@@ -127,6 +125,8 @@ public class SolicitacaoEmbarqueService {
 		}
 
 		solicitacao.setStatus(novo);
+		solicitacao.setMensagemVoz(mensagemVozService.mensagemDeStatus(novo, solicitacao.getLinha(),
+				solicitacao.getMensagemVoz()));
 		return SolicitacaoEmbarqueResponse.from(solicitacao);
 	}
 
@@ -149,7 +149,7 @@ public class SolicitacaoEmbarqueService {
 				.toList();
 	}
 
-	/** Monta o que a IA precisa saber, sem nenhum dado pessoal do passageiro. */
+	/** Reune os dados para recuperar orientacoes e montar o texto falado. */
 	private ContextoMensagemVoz contextoDaMensagem(SolicitacaoEmbarque solicitacao) {
 		Passageiro passageiro = solicitacao.getPassageiro();
 		Linha linha = solicitacao.getLinha();
@@ -157,7 +157,6 @@ public class SolicitacaoEmbarqueService {
 				passageiro != null ? passageiro.getTipoNecessidade() : null,
 				linha != null ? linha.getLetreiro() : null,
 				linha != null ? linha.getDestino() : null,
-				solicitacao.getTotem().getParada().getNome(),
 				solicitacao.getTipoSinal());
 	}
 

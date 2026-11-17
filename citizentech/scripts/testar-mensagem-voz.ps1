@@ -28,8 +28,9 @@ if ($resposta.StatusCode -ne 201 -or [string]::IsNullOrWhiteSpace($criada.mensag
     throw 'Esperava HTTP 201 com uma mensagem de voz.'
 }
 $gravada = Invoke-RestMethod -Uri "$api/api/solicitacoes/$($criada.id)" -Headers $headers
-if ($gravada.mensagemVoz -cne $criada.mensagemVoz -or $criada.mensagemVoz.Length -gt 300) {
-    throw 'A mensagem deve ser persistida e ter no maximo 300 caracteres.'
+$bytesUtf8 = [System.Text.Encoding]::UTF8.GetByteCount($criada.mensagemVoz)
+if ($gravada.mensagemVoz -cne $criada.mensagemVoz -or $bytesUtf8 -gt 300) {
+    throw 'A mensagem deve ser persistida e ter no maximo 300 bytes UTF-8.'
 }
 
 [pscustomobject]@{
@@ -39,6 +40,8 @@ if ($gravada.mensagemVoz -cne $criada.mensagemVoz -or $criada.mensagemVoz.Length
     statusNaConsulta = $gravada.status
     mensagemVoz = $criada.mensagemVoz
     caracteres = $criada.mensagemVoz.Length
+    bytesUtf8 = $bytesUtf8
     duracaoPostMs = $tempo.ElapsedMilliseconds
     persistida = $true
-} | ConvertTo-Json
+    geracaoMensagemVoz = $criada.geracaoMensagemVoz
+} | ConvertTo-Json -Depth 5

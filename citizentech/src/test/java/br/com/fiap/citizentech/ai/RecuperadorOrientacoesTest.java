@@ -29,7 +29,7 @@ class RecuperadorOrientacoesTest {
 	@CsvSource({ "BAIXA_VISAO,PC-04", "CADEIRA_DE_RODAS,PC-05", "MOBILIDADE_REDUZIDA,PC-06", "IDOSO,PC-07" })
 	void recuperaAOrientacaoDeCadaNecessidade(TipoNecessidade necessidade, String id) {
 		ContextoMensagemVoz pedido = new ContextoMensagemVoz(
-				necessidade, "6091-10", "Terminal Varginha", "Parada UBS", TipoSinal.CARTAO);
+				necessidade, "6091-10", "Terminal Varginha", TipoSinal.CARTAO);
 
 		List<OrientacaoEmbarque> orientacoes = recuperador.buscar(pedido);
 
@@ -43,7 +43,7 @@ class RecuperadorOrientacoesTest {
 
 	@Test
 	void recuperaOrientacoesParaBotaoSemIdentificacaoEDadosAusentes() {
-		ContextoMensagemVoz pedido = new ContextoMensagemVoz(null, " ", null, "Parada UBS", TipoSinal.BOTAO);
+		ContextoMensagemVoz pedido = new ContextoMensagemVoz(null, " ", null, TipoSinal.BOTAO);
 
 		assertThat(recuperador.buscar(pedido)).extracting(OrientacaoEmbarque::id)
 				.containsExactly("PC-03", "PC-01", "PC-02");
@@ -52,7 +52,7 @@ class RecuperadorOrientacoesTest {
 	@Test
 	void recuperaDadosIncompletosQuandoSoODestinoFalta() {
 		ContextoMensagemVoz pedido = new ContextoMensagemVoz(
-				TipoNecessidade.IDOSO, "6091-10", null, "Parada UBS", TipoSinal.CARTAO);
+				TipoNecessidade.IDOSO, "6091-10", null, TipoSinal.CARTAO);
 
 		assertThat(recuperador.buscar(pedido)).extracting(OrientacaoEmbarque::id)
 				.containsExactly("PC-01", "PC-03", "PC-07");
