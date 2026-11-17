@@ -10,9 +10,66 @@ Perfis de usuário:
 | `MOTORISTA` | Vê as solicitações da sua linha e marca embarque / não atendimento |
 | `GESTOR` | Administra usuários, paradas, linhas, totens, veículos e acompanha tudo |
 
+## Entrega de Disruptive Architectures
+
+A mensagem de voz ajuda pessoas idosas e passageiros com baixa visão, cadeira de rodas ou mobilidade reduzida a saber que o pedido de embarque foi registrado e onde aguardar. A entrega implementa o **RF11** e avalia o **RNF07** com o simulador da parada, a API Java e o **Qwen3 4B Instruct 2507 Q4_K_M** executado localmente pelo Ollama.
+
+### Identificação da equipe
+
+O arquivo de submissão ao Portal do Aluno reúne o nome completo e o RM de cada integrante e o link da branch [`entrega-ia-iot`](https://github.com/Jounaxis/GlobalSolution_paradaCerta/tree/entrega-ia-iot).
+
+### Executar a demonstração
+
+Instale um JDK 21 e o [Ollama](https://docs.ollama.com/windows). Configure `JAVA_HOME` para o JDK 21. O Maven Wrapper está no repositório. Com o Ollama em execução, rode no PowerShell:
+
+```powershell
+git clone --branch entrega-ia-iot https://github.com/Jounaxis/GlobalSolution_paradaCerta.git
+Set-Location GlobalSolution_paradaCerta/citizentech
+java -version
+ollama pull qwen3:4b-instruct-2507-q4_K_M
+$env:SPRING_PROFILES_ACTIVE = 'dev,ia-local'
+$env:SERVER_ADDRESS = '127.0.0.1'
+$env:SERVER_PORT = '18082'
+.\mvnw.cmd spring-boot:run
+```
+
+Abra o [simulador](http://127.0.0.1:18082/simulador), clique em **Usar conta de demonstração** e selecione um cenário. **Criar solicitação** chama a API com o JWT de gestor. **Ouvir mensagem** usa a síntese de voz do navegador. **Detalhes técnicos** mostra a origem da mensagem e as referências recuperadas. O perfil usa H2 em memória e mensageria local. O perfil `ia-local` aponta o Spring AI para o servidor local, com inferência sem credencial de API externa. Veja o [guia do simulador](docs/entrega-ia-iot/simulador.md) e o [comando para pré-carregar o modelo](docs/entrega-ia-iot/fluxo-mensagem.md#conferir-no-ambiente-local).
+
+### Arquitetura da mensagem de voz
+
+```mermaid
+flowchart LR
+    SIM["Simulador no navegador"] -->|"Pedido e JWT"| API["API Java de embarque"]
+    BASE["Base JSON de orientações"] --> RAG["Recuperação textual"]
+    API -->|"Necessidade e dados ausentes"| RAG
+    RAG -->|"Até três trechos"| IA["Spring AI e Qwen3 no Ollama"]
+    IA -->|"Orientação de espera"| TEXTO["Validação e composição da mensagem"]
+    API -->|"Estado, linha e destino confirmados"| TEXTO
+    TEXTO -->|"Grava o pedido e a mensagem"| BANCO[("H2 em dev ou Oracle")]
+    TEXTO -->|"Texto, origem e referências"| SIM
+    API -->|"Evento após o commit"| AVISO["Registro do aviso ao motorista"]
+    AVISO -->|"Atualiza estado e mensagem"| BANCO
+    SIM -->|"Síntese de voz"| FALA["Áudio do navegador"]
+```
+
+A [base JSON](citizentech/src/main/resources/rag/orientacoes-embarque.json) contém sete trechos para confirmação, botão sem identificação, dados ausentes e necessidades de acessibilidade. Cada trecho tem ID, assunto, texto, expressões de busca e fonte. A busca normaliza acentos, caixa e separadores, pontua expressões em comum e seleciona até três trechos. A técnica facilita reproduzir e inspecionar a seleção em um corpus pequeno com entradas estruturadas. Veja a [preparação e a recuperação dos dados](docs/entrega-ia-iot/rag.md).
+
+As fontes do corpus são as páginas 2 a 5, 7, 8, 13 a 15 e 23 de `Parada-Certa-Documentacao.pdf`. `Requisitos IA e IoT.pdf` define os critérios da disciplina e o formato da entrega. `Banco de dados base parada certa.txt` define `mensagem_voz` como `VARCHAR2(300)`. Os dados dos cenários são fictícios e ficam no perfil `dev`. O modelo escolhido é pequeno o suficiente para rodar na máquina da demonstração e a API compatível do Ollama permite reaproveitar o Spring AI. [Artefato do Qwen3](https://ollama.com/library/qwen3:4b-instruct-2507-q4_K_M) · [Compatibilidade do Ollama](https://docs.ollama.com/api/openai-compatibility)
+
+A API monta a primeira frase com os fatos do pedido. O modelo recebe os trechos de orientação e redige a instrução de espera. Texto fora do formato, falha ou três segundos de espera acionam a contingência. O texto persistido tem até duas frases e 300 bytes UTF-8. A [descrição do fluxo](docs/entrega-ia-iot/fluxo-mensagem.md) explica como a mensagem muda junto do status.
+
+### Testes e apresentação
+
+- **44 testes automatizados** passaram com `./mvnw test` ou `.\mvnw.cmd test`, entre testes com respostas controladas e verificações de integração.
+- **12 cenários reais** retornaram HTTP 201, com a recuperação esperada e mensagens de 49 a 112 bytes. O modelo forneceu a orientação em nove casos e a contingência cobriu os outros três. Veja o [relatório de avaliação](docs/entrega-ia-iot/avaliacao.md) e o [registro em JSON](docs/entrega-ia-iot/resultados-avaliacao.json).
+- No cartão de baixa visão, a comparação com RAG mudou a orientação de “na parada” para “perto do totem”. No outro caso de baixa visão, o trecho específico foi recuperado e a frase ficou genérica. A avaliação usa uma passagem por cenário. A clareza em uma parada real, a previsão de chegada e o comportamento em outras máquinas permanecem como limitações descritas no relatório.
+- [Roteiro curto da apresentação](docs/entrega-ia-iot/roteiro-apresentacao.md).
+
 ---
 
 ## Sumário
+
+Entrega da disciplina: [execução, arquitetura, fontes e avaliação](#entrega-de-disruptive-architectures).
 
 1. [Stack](#stack)
 2. [Requisitos atendidos (Java Advanced)](#requisitos-atendidos-java-advanced)
@@ -38,7 +95,7 @@ Perfis de usuário:
 - Java 21 · Spring Boot 4.1 · Maven (wrapper incluso, não precisa instalar o Maven)
 - Spring Web MVC · Spring Data JPA (Hibernate 7) · Bean Validation
 - Spring Security 7 com JWT (OAuth2 Resource Server, HS256)
-- Spring AI 2.0 (OpenAI, modelo `gpt-4o-mini`)
+- Spring AI 2.0 (Qwen3 4B via Ollama no perfil `ia-local`, OpenAI na configuração original)
 - Spring AMQP + RabbitMQ 4.1
 - Oracle (banco da FIAP) · H2 em memória (perfil `dev` e testes)
 - springdoc-openapi (Swagger UI) · Lombok · Actuator
@@ -84,7 +141,7 @@ No perfil `dev`:
 
 - O banco é recriado toda vez que a API sobe (os dados criados pelo app somem ao reiniciar).
 - O aviso ao motorista roda dentro da própria API (sem fila). O resultado no app é o mesmo do modo com RabbitMQ.
-- Sem `OPENAI_API_KEY`, a mensagem de voz usa uma frase padrão. Com a chave definida, a IA é usada de verdade.
+- O perfil `dev,ia-local` usa o Qwen3 pelo Ollama. O perfil `dev` sozinho usa a configuração da OpenAI, com contingência se o provedor falhar.
 
 ### Opção 2 – Modo completo (Oracle + RabbitMQ + OpenAI)
 
@@ -113,6 +170,9 @@ No perfil `dev`:
 | `MENSAGERIA_MODO` | `rabbit` | `rabbit` (fila) ou `local` (sem fila) |
 | `OPENAI_API_KEY` | – | Chave da OpenAI |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Modelo usado |
+| `OLLAMA_BASE_URL` | `http://127.0.0.1:11434/v1` | API do Ollama no perfil `ia-local` |
+| `OLLAMA_MODEL` | `qwen3:4b-instruct-2507-q4_K_M` | Modelo do perfil `ia-local` |
+| `CITIZENTECH_IA_RAG_HABILITADO` | `true` | Desabilite no controle de avaliação sem RAG |
 | `JWT_SECRET` | – | Segredo do JWT (**mínimo 32 caracteres**) |
 | `JWT_EXPIRATION_MINUTES` | `120` | Validade do token |
 | `HASH_SECRET` | – | Segredo do HMAC do UID do cartão e do token do totem |
@@ -137,7 +197,7 @@ Dados de exemplo do perfil `dev`:
 | Recurso | Exemplo |
 |---|---|
 | Paradas | `1` – Av. Paulista, 1578 – MASP · `2` – Terminal Varginha |
-| Linhas | `1` – 6091-10 (Terminal Varginha) · `2` – 875A-10 (Aclimação) |
+| Linhas | `1` – 6091-10 (Terminal Varginha) · `2` – 875A-10 (Aclimação) · `3` – 7012-10 (sem destino) |
 | Totem | `1` – `TOTEM-0001`, na parada 1, token `token-totem-0001` |
 | Veículo | `1` – prefixo `6 1234`, linha 6091-10, dirigido pelo motorista de teste |
 | Passageiro | `1` – Joao Passageiro (`BAIXA_VISAO`), do cuidador de teste |
@@ -329,22 +389,22 @@ O campo `consentimento` do passageiro precisa ser `true`, porque o aceite do ter
 ## Fluxo da solicitação de embarque
 
 ```
-Totem (cartão/botão)
+Totem (cartão/botão) ou simulador
    │  POST /api/solicitacoes
    ▼
 API ── valida (totem ATIVO, 1 solicitação ativa por passageiro, chave de idempotência)
-   │── gera mensagem de voz (Spring AI; frase padrão se a IA falhar)
+   │── recupera orientações e monta a mensagem (Spring AI ou contingência)
    │── grava a solicitação como CRIADA e devolve 201 com a mensagem de voz
    │
    │  depois do commit: evento "solicitacao.criada"
    ▼
-RabbitMQ ──► consumidor ── registra tentativa PENDENTE para a linha
-                         └─ muda a solicitação para MOTORISTA_AVISADO
+RabbitMQ ou evento local em dev ── registra tentativa PENDENTE para a linha
+                               └─ atualiza estado e mensagem para MOTORISTA_AVISADO
    ▼
 App do motorista: GET /api/solicitacoes?status=MOTORISTA_AVISADO
    │  PATCH /api/solicitacoes/{id}/status  { "status": "EMBARCADO" }
    ▼
-Status final (EMBARCADO, NAO_ATENDIDA, SEM_ONIBUS ou CANCELADA)
+Status final (EMBARCADO, SEM_ONIBUS ou CANCELADA)
 ```
 
 Regras de status:
@@ -383,17 +443,7 @@ No perfil `dev` (`MENSAGERIA_MODO=local`), o mesmo serviço é chamado direto ap
 
 ## IA – mensagem de voz com Spring AI
 
-Quando o totem cria uma solicitação sem `mensagemVoz`, o `MensagemVozService` pede ao modelo da OpenAI, via `ChatClient` do Spring AI, uma frase curta e acolhedora para o totem falar. O pedido leva em conta:
-
-- a linha e o destino;
-- o tipo de necessidade do passageiro, por exemplo avisar que o motorista vai preparar a rampa para cadeira de rodas.
-
-Proteções:
-
-- **Fallback:** se a IA demorar, falhar ou não houver chave, a API usa uma frase padrão por tipo de necessidade. O totem nunca fica mudo.
-- A resposta é limpa e limitada a 300 caracteres, o tamanho da coluna.
-- Nenhum dado pessoal identificável (nome, contato) é enviado ao modelo.
-- Timeouts de 3 s para conectar e 10 s de leitura, com até 2 tentativas.
+O `MensagemVozService` executa a geração durante a criação do pedido. O `POST` retorna `mensagemVoz` e `geracaoMensagemVoz`, com a origem e as referências recuperadas. A consulta exibe a mensagem armazenada para o estado atual. O [fluxo da mensagem](docs/entrega-ia-iot/fluxo-mensagem.md) descreve o contrato, a forma validada e a contingência. O [roteiro de avaliação](docs/entrega-ia-iot/avaliacao.md) permite reproduzir os casos com e sem RAG.
 
 ---
 
@@ -487,4 +537,4 @@ _Link do deploy: a definir._
 
 ## Declaração de uso de IA
 
-Este projeto foi desenvolvido com o apoio de uma ferramenta de IA generativa (Claude, da Anthropic, via Claude Code). Ela ajudou a estruturar o código, os testes e esta documentação, e todo o conteúdo foi revisado pela equipe. Em tempo de execução, a aplicação usa um modelo da OpenAI, via Spring AI, para gerar a mensagem de voz do totem, com uma frase padrão como fallback.
+O desenvolvimento da API original teve apoio do Claude Code. A extensão para esta disciplina usou o Codex para implementar, testar e documentar a recuperação e a geração de mensagens. Em tempo de execução, a entrega usa o Qwen3 4B via Ollama e Spring AI para redigir a orientação de espera, com uma frase padrão de contingência.
