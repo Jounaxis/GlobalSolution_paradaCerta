@@ -1,9 +1,13 @@
 package br.com.fiap.citizentech.ai;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.openai.errors.RateLimitException;
 
@@ -15,8 +19,7 @@ import br.com.fiap.citizentech.model.enums.TipoSinal;
  * <p>
  * Quando uma solicitacao de embarque e criada, o LLM escreve a frase que o totem
  * fala ao passageiro, adaptada ao tipo de necessidade, a linha e ao destino.
- * Ex.: para BAIXA_VISAO, orienta a ficar perto do totem e avisa que o onibus sera anunciado;
- * para CADEIRA_DE_RODAS, avisa que o motorista vai preparar a rampa.
+ * As orientacoes de acessibilidade sao recuperadas de uma base textual do projeto.
  * <p>
  * Se a OpenAI falhar ou demorar, entra uma frase padrao montada aqui mesmo:
  * o totem nunca fica sem resposta.
@@ -31,8 +34,7 @@ public class MensagemVozService {
 
 	private static final String INSTRUCOES = """
 			Voce escreve as frases faladas por um totem de parada de onibus em Sao Paulo.
-			O totem ajuda passageiros com deficiencia ou mobilidade reduzida a embarcar:
-			quando o passageiro aciona o totem, o motorista do proximo onibus e avisado.
+			O totem registra o pedido de ajuda para embarcar.
 
 			Regras da frase:
 			- Portugues do Brasil, tom acolhedor e direto, no maximo 2 frases e 250 caracteres.
@@ -40,38 +42,44 @@ public class MensagemVozService {
 			- Confirme que o pedido de embarque foi registrado.
 			- Se a linha e o destino forem informados, cite os dois.
 			- Nao prometa horario de chegada nem diga quantos minutos faltam.
-			- Adapte a orientacao a necessidade:
-			  BAIXA_VISAO: peca para ficar perto do totem; o onibus sera anunciado por voz.
-			  CADEIRA_DE_RODAS: diga que o motorista vai preparar a rampa de acesso.
-			  MOBILIDADE_REDUZIDA ou IDOSO: diga que o motorista vai esperar o embarque com calma.
-			  NAO_INFORMADA: use uma orientacao geral para aguardar na parada.
+			- Use as orientacoes recuperadas para adaptar a fala aos dados disponiveis.
+			- As orientacoes nao confirmam fatos sobre este pedido. Evite mencionar a necessidade do passageiro.
 			Responda somente com a frase.
 			""";
 
 	private static final String PEDIDO = """
-			Necessidade do passageiro: {necessidade}
 			Linha: {linha}
 			Destino: {destino}
 			Parada: {parada}
 			Acionamento: {sinal}
+
+			Orientacoes recuperadas:
+			{orientacoes}
 			""";
 
 	private final ChatClient chatClient;
+	private final RecuperadorOrientacoes recuperador;
 
-	public MensagemVozService(ChatClient.Builder chatClientBuilder) {
+	public MensagemVozService(ChatClient.Builder chatClientBuilder, RecuperadorOrientacoes recuperador) {
 		this.chatClient = chatClientBuilder.defaultSystem(INSTRUCOES).build();
+		this.recuperador = recuperador;
 	}
 
 	public String gerar(ContextoMensagemVoz contexto) {
 		try {
+			List<OrientacaoEmbarque> orientacoes = recuperador.buscar(contexto);
+			log.debug("Orientacoes RAG recuperadas: {}", orientacoes);
+			String orientacoesRecuperadas = orientacoes.stream()
+					.map(orientacao -> "- " + orientacao.texto())
+					.collect(Collectors.joining("\n"));
 			String resposta = chatClient.prompt()
 					.user(usuario -> usuario.text(PEDIDO)
-							.param("necessidade", valor(contexto.tipoNecessidade(), "NAO_INFORMADA"))
 							.param("linha", valor(contexto.letreiroLinha(), "nao informada"))
 							.param("destino", valor(contexto.destinoLinha(), "nao informado"))
 							.param("parada", valor(contexto.nomeParada(), "nao informada"))
 							.param("sinal", contexto.tipoSinal() == TipoSinal.CARTAO
-									? "cartao do passageiro" : "botao do totem"))
+									? "cartao do passageiro" : "botao do totem")
+							.param("orientacoes", valor(orientacoesRecuperadas, "nenhuma orientacao especifica")))
 					.call()
 					.content();
 
@@ -134,8 +142,8 @@ public class MensagemVozService {
 		return (ultimoEspaco > 0 ? cortado.substring(0, ultimoEspaco) : cortado).trim();
 	}
 
-	private static String valor(Object valor, String padrao) {
-		return valor != null ? valor.toString() : padrao;
+	private static String valor(String valor, String padrao) {
+		return StringUtils.hasText(valor) ? valor : padrao;
 	}
 
 }

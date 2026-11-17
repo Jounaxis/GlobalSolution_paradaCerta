@@ -4,10 +4,10 @@ import br.com.fiap.citizentech.model.enums.TipoNecessidade;
 import br.com.fiap.citizentech.model.enums.TipoSinal;
 
 /**
- * O que a IA recebe para montar a mensagem de voz do totem.
+ * Dados disponiveis para montar a mensagem de voz do totem.
  * <p>
- * LGPD: nenhum dado pessoal vai para o modelo (nem nome, nem contato).
- * So o tipo de necessidade, que e o que muda a orientacao falada.
+ * A necessidade e usada localmente para escolher a orientacao de acessibilidade.
+ * O modelo recebe o texto das orientacoes e os dados da viagem descritos no prompt.
  *
  * @param tipoNecessidade necessidade do passageiro; null quando o pedido veio do botao, sem cartao
  * @param letreiroLinha   letreiro da linha (ex.: 6091-10); null quando a linha nao e conhecida

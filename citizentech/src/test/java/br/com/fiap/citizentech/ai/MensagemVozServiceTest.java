@@ -3,13 +3,16 @@ package br.com.fiap.citizentech.ai;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,9 +20,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClient.PromptUserSpec;
+import org.springframework.core.io.ClassPathResource;
 
 import br.com.fiap.citizentech.model.enums.TipoNecessidade;
 import br.com.fiap.citizentech.model.enums.TipoSinal;
+import tools.jackson.databind.json.JsonMapper;
 
 /** Testa a mensagem de voz sem chamar a OpenAI: o ChatClient e simulado com Mockito. */
 class MensagemVozServiceTest {
@@ -31,12 +36,14 @@ class MensagemVozServiceTest {
 	private MensagemVozService service;
 
 	@BeforeEach
-	void configurar() {
+	void configurar() throws IOException {
 		chatClient = mock(ChatClient.class, RETURNS_DEEP_STUBS);
 		ChatClient.Builder builder = mock(ChatClient.Builder.class);
 		when(builder.defaultSystem(anyString())).thenReturn(builder);
 		when(builder.build()).thenReturn(chatClient);
-		service = new MensagemVozService(builder);
+		RecuperadorOrientacoes recuperador = new RecuperadorOrientacoes(new JsonMapper(),
+				new ClassPathResource("rag/orientacoes-embarque.json"));
+		service = new MensagemVozService(builder, recuperador);
 	}
 
 	@Test
@@ -49,7 +56,7 @@ class MensagemVozServiceTest {
 	}
 
 	@Test
-	void enviaAoModeloSoONecessarioSemDadosPessoais() {
+	void injetaOsTrechosRecuperadosSemEnviarOTipoDeNecessidade() {
 		respostaDaIa("Pedido registrado.");
 
 		service.gerar(BAIXA_VISAO_COM_LINHA);
@@ -61,11 +68,16 @@ class MensagemVozServiceTest {
 		PromptUserSpec pedido = mock(PromptUserSpec.class, RETURNS_SELF);
 		captor.getAllValues().getLast().accept(pedido);
 
-		verify(pedido).param("necessidade", "BAIXA_VISAO");
+		verify(pedido, never()).param(eq("necessidade"), any());
 		verify(pedido).param("linha", "6091-10");
 		verify(pedido).param("destino", "Terminal Varginha");
 		verify(pedido).param("parada", "Parada UBS");
 		verify(pedido).param("sinal", "cartao do passageiro");
+		ArgumentCaptor<String> orientacoes = ArgumentCaptor.forClass(String.class);
+		verify(pedido).param(eq("orientacoes"), orientacoes.capture());
+		assertThat(orientacoes.getValue())
+				.contains("Confirme em palavras simples", "aguardar perto do totem")
+				.doesNotContain("BAIXA_VISAO", "rampa", "PC-04");
 	}
 
 	@Test

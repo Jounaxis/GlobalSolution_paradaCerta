@@ -1,0 +1,51 @@
+[
+  {
+    "id": "PC-01",
+    "assunto": "Confirmação do pedido",
+    "origem": "Parada-Certa-Documentacao.pdf, p. 5, 7 e 8 (CRIADA, RF11 e RNF07)",
+    "termos": ["pedido criado"],
+    "texto": "Confirme em palavras simples que o pedido de embarque foi registrado. Registro do pedido e aviso ao motorista são eventos distintos."
+  },
+  {
+    "id": "PC-02",
+    "assunto": "Botão sem passageiro identificado",
+    "origem": "Parada-Certa-Documentacao.pdf, p. 4, 13 e 23 (fluxo do botão sem cartão)",
+    "termos": ["botão sem passageiro"],
+    "texto": "Para um pedido feito pelo botão sem identificação, use uma orientação geral para aguardar na parada. Evite atribuir ao passageiro algum cadastro, necessidade ou rota."
+  },
+  {
+    "id": "PC-03",
+    "assunto": "Dados incompletos da viagem",
+    "origem": "Parada-Certa-Documentacao.pdf, p. 8, 14 e 15 (RNF10 e mensagem de voz)",
+    "termos": ["linha ausente", "destino ausente"],
+    "texto": "Mencione a linha ou o destino apenas quando o dado correspondente estiver disponível. Quando faltar previsão confirmada, omita horários e minutos."
+  },
+  {
+    "id": "PC-04",
+    "assunto": "Orientação falada para baixa visão",
+    "origem": "Parada-Certa-Documentacao.pdf, p. 3, 13 e 15 (aviso por voz na parada)",
+    "termos": ["baixa visão"],
+    "texto": "Use uma referência fácil de reconhecer pela fala. Oriente a pessoa a aguardar perto do totem quando couber."
+  },
+  {
+    "id": "PC-05",
+    "assunto": "Embarque com cadeira de rodas",
+    "origem": "Parada-Certa-Documentacao.pdf, p. 3 a 5 (apoio no embarque e estados da solicitação)",
+    "termos": ["cadeira de rodas"],
+    "texto": "Use uma orientação direta de espera. Só fale em rampa pronta ou assistência confirmada se essa informação estiver disponível."
+  },
+  {
+    "id": "PC-06",
+    "assunto": "Embarque com mobilidade reduzida",
+    "origem": "Parada-Certa-Documentacao.pdf, p. 2 a 4 (mais tempo para embarcar)",
+    "termos": ["mobilidade reduzida"],
+    "texto": "Use linguagem tranquila para orientar a espera. Evite instruções que apressem o passageiro ou prometam tempo adicional de embarque."
+  },
+  {
+    "id": "PC-07",
+    "assunto": "Orientação para passageiro idoso",
+    "origem": "Parada-Certa-Documentacao.pdf, p. 2 a 4 e 8 (público e RNF07)",
+    "termos": ["idoso"],
+    "texto": "Use palavras comuns e uma instrução de cada vez. Fale de forma respeitosa e oriente a aguardar na parada."
+  }
+]
