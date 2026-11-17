@@ -75,11 +75,12 @@ public class MensagemVozService {
 
 			String mensagem = limpar(resposta);
 			if (!mensagem.isEmpty()) {
+				log.debug("Mensagem de voz: origem=MODELO");
 				return mensagem;
 			}
-			log.warn("A IA devolveu uma mensagem vazia; usando a mensagem padrao");
+			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo=resposta_vazia");
 		} catch (RuntimeException e) {
-			log.warn("Falha ao gerar a mensagem de voz com IA; usando a mensagem padrao: {}", e.getMessage());
+			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo={}", e.getClass().getSimpleName());
 		}
 		return mensagemPadrao(contexto);
 	}
