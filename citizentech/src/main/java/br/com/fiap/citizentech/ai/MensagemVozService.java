@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 
+import com.openai.errors.RateLimitException;
+
 import br.com.fiap.citizentech.model.enums.TipoNecessidade;
 import br.com.fiap.citizentech.model.enums.TipoSinal;
 
@@ -79,6 +81,15 @@ public class MensagemVozService {
 				return mensagem;
 			}
 			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo=resposta_vazia");
+		} catch (RateLimitException e) {
+			String codigo = e.code().orElse("");
+			String codigoSeguro = switch (codigo) {
+				case "insufficient_quota", "credit_balance_exhausted", "usage_limit_exceeded",
+						"organization_spend_limit_exceeded", "project_spend_limit_exceeded",
+						"organization_usage_limit_exceeded", "rate_limit_exceeded", "slow_down" -> codigo;
+				default -> e.type().filter("insufficient_quota"::equals).orElse("nao_classificado");
+			};
+			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo=RateLimitException codigo={}", codigoSeguro);
 		} catch (RuntimeException e) {
 			log.warn("Mensagem de voz: origem=CONTINGENCIA motivo={}", e.getClass().getSimpleName());
 		}

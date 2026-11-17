@@ -1,0 +1,11 @@
+# Ative com dev,ia-local para usar o Ollama no fluxo de embarque.
+spring:
+  ai:
+    openai:
+      base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434/v1}
+      # O cliente exige um valor. O servidor local do Ollama o ignora.
+      api-key: ollama
+      chat:
+        max-retries: 0
+        options:
+          model: ${OLLAMA_MODEL:qwen3:4b-instruct-2507-q4_K_M}
