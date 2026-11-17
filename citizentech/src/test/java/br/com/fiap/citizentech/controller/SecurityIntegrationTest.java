@@ -77,6 +77,14 @@ class SecurityIntegrationTest {
 	}
 
 	@Test
+	void paginaDoSimuladorSoExisteNoPerfilDev() throws Exception {
+		registrar("simulador@teste.com");
+		String token = login("simulador@teste.com");
+		mockMvc.perform(get("/simulador/index.html").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+				.andExpect(status().isForbidden());
+	}
+
+	@Test
 	void cuidadorNaoAcessaRotasDeGestor() throws Exception {
 		registrar("bia@teste.com");
 		String token = login("bia@teste.com");
@@ -92,6 +100,9 @@ class SecurityIntegrationTest {
 		mockMvc.perform(post("/api/paradas").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"codigoSptrans\": 1, \"nome\": \"Parada\"}"))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(post("/api/solicitacoes").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+				.contentType(MediaType.APPLICATION_JSON).content("{}"))
 				.andExpect(status().isForbidden());
 	}
 

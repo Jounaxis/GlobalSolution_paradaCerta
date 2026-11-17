@@ -94,6 +94,8 @@ public class DevDataSeeder implements ApplicationRunner {
 				.codigoSptrans(1273L).letreiro("6091-10").sentido(1).destino("Terminal Varginha").build());
 		linhaRepository.save(Linha.builder()
 				.codigoSptrans(33041L).letreiro("875A-10").sentido(1).destino("Aclimacao").build());
+		linhaRepository.save(Linha.builder()
+				.codigoSptrans(70120L).letreiro("7012-10").sentido(1).build());
 
 		totemRepository.save(Totem.builder()
 				.parada(paulista)

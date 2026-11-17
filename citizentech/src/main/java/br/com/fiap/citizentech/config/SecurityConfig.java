@@ -9,6 +9,8 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -55,14 +57,20 @@ public class SecurityConfig {
 
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http, SecurityErrorHandler securityErrorHandler,
-			JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
+			JwtAuthenticationConverter jwtAuthenticationConverter, Environment environment) throws Exception {
 		return http
 				// API REST stateless com token no header: sem sessao e sem CSRF
 				.csrf(AbstractHttpConfigurer::disable)
 				.cors(Customizer.withDefaults())
 				.sessionManagement(sessao -> sessao.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.authorizeHttpRequests(auth -> auth
-						.requestMatchers(HttpMethod.POST, "/auth/login", "/auth/registro").permitAll()
+				.authorizeHttpRequests(auth -> {
+					var simulador = auth.requestMatchers(HttpMethod.GET, "/simulador", "/simulador/**");
+					if (environment.acceptsProfiles(Profiles.of("dev"))) {
+						simulador.permitAll();
+					} else {
+						simulador.denyAll();
+					}
+					auth.requestMatchers(HttpMethod.POST, "/auth/login", "/auth/registro").permitAll()
 						.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
 						.requestMatchers("/actuator/health/**", "/actuator/info", "/error").permitAll()
 
@@ -81,7 +89,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.PATCH, "/api/solicitacoes/*/status").hasAnyRole(MOTORISTA, GESTOR)
 						.requestMatchers("/api/solicitacoes/**").hasRole(GESTOR)
 
-						.anyRequest().authenticated())
+						.anyRequest().authenticated();
+				})
 				.oauth2ResourceServer(oauth2 -> oauth2
 						.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
 						.authenticationEntryPoint(securityErrorHandler)

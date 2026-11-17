@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulador da parada | Parada Certa</title>
+  <link rel="stylesheet" href="./estilo.css">
+  <script type="module" src="./simulador.js"></script>
+</head>
+<body>
+  <header class="cabecalho">
+    <div class="largura cabecalho-interno">
+      <div>
+        <p class="marca">Parada Certa</p>
+        <h1>Simulador da parada</h1>
+        <p class="subtitulo">Teste o pedido de embarque e a mensagem de voz do totem.</p>
+      </div>
+      <div class="conta">
+        <span id="estado-sessao" class="etiqueta" role="status">Sessão inativa</span>
+        <button id="sair" class="sair" type="button" hidden>Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="largura painel">
+    <section class="cartao controles" aria-labelledby="titulo-controles">
+      <h2 id="titulo-controles">Simular embarque</h2>
+      <p class="nota">Ambiente de desenvolvimento com dados fictícios.</p>
+
+      <form id="login">
+        <div class="campo">
+          <label for="email">E-mail do gestor</label>
+          <input id="email" name="email" type="email" autocomplete="username" required>
+        </div>
+        <div class="campo">
+          <label for="senha">Senha</label>
+          <input id="senha" name="senha" type="password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" id="entrar" class="principal">Entrar</button>
+        <button type="button" id="conta-dev" class="secundario">Usar conta de demonstração</button>
+      </form>
+
+      <form id="embarque" hidden>
+        <div class="campo">
+          <label for="cenario">Cenário do totem</label>
+          <select id="cenario" name="cenario" aria-describedby="descricao-cenario"></select>
+          <p id="descricao-cenario" class="nota"></p>
+        </div>
+        <button id="enviar" type="submit" class="principal">Criar solicitação</button>
+      </form>
+      <p id="erro" class="erro" role="alert" hidden></p>
+    </section>
+
+    <section class="cartao voz" aria-labelledby="titulo-voz">
+      <div class="titulo-voz">
+        <h2 id="titulo-voz">Mensagem do totem</h2>
+        <span id="status-pedido" class="estado" hidden></span>
+      </div>
+      <div id="mensagem" class="fala" role="status" aria-live="polite" aria-atomic="true">
+        A mensagem aparece aqui depois que você criar uma solicitação.
+      </div>
+      <div class="audio">
+        <button id="ouvir" class="principal" type="button" disabled>Ouvir mensagem</button>
+        <p id="estado-audio" class="nota" role="status"></p>
+      </div>
+
+      <details class="tecnico" open>
+        <summary>Detalhes técnicos</summary>
+        <dl>
+          <div><dt>Solicitação</dt><dd id="pedido-id">—</dd></div>
+          <div><dt>Origem da mensagem</dt><dd id="origem">—</dd></div>
+        </dl>
+        <h3>Referências recuperadas</h3>
+        <p id="refs-vazias" class="nota">Aguardando solicitação.</p>
+        <ul id="referencias" class="referencias" hidden></ul>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
